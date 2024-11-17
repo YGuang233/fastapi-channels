@@ -31,7 +31,6 @@ theme:
   - content.code.annotate
   - content.code.copy
   - content.footnote.tooltips
-  - content.tabs.link
   - content.tooltips
   - navigation.footer
   - navigation.indexes
@@ -42,6 +41,7 @@ theme:
   - navigation.tabs
   - navigation.top
   - navigation.tracking
+  - navigation.tabs.sticky
   - search.highlight
   - search.share
   - search.suggest
@@ -78,6 +78,11 @@ markdown_extensions:
 - tables
 - pymdownx.details
 - mdx_include: null
+- pymdownx.critic
+- pymdownx.caret
+- pymdownx.keys
+- pymdownx.mark
+- pymdownx.tilde
 plugins:
 - git-revision-date-localized:
     type: date
@@ -92,22 +97,29 @@ nav:
 - 特点: features.md
 - 学习:
   - learn/index.md
-  - learn/setup.md
-  - action:
-    - learn/action.md
-    - learn/limiter.md
+  - 教程-用户指南:
+    - tutorial/index.md
+    - tutorial/setup.md
+    - tutorial/classes.md
+    - tutorial/action.md
+    - tutorial/limiter.md
+    - tutorial/permission.md
+    - tutorial/exception.md
+  - 高级-用户指南:
+    - advanced/index.md
+    - advanced/lifespan.md
 - 参考:
   - reference/index.md
 - 资源:
   - resources/index.md
   - resources/help-fastapi-channels.md
   - contributing.md
-  - resources/commit-and-pr-help.md
   - resources/management-tasks.md
+  - resources/commit-and-pr-help.md
+  - resources/docs-dev.md
 - 关于:
   - about/index.md
   - about/history-design-future.md
-  - about/management.md
 - 发行说明: release-notes.md
 extra:
   analytics:
@@ -132,8 +144,6 @@ extra:
   alternate:
   - link: /
     name: zh - 简体中文
-  - link: /aa/
-    name: aa - Afaraf
   - link: /en/
     name: en - English
   - link: /zh-hant/

@@ -1,3 +1,9 @@
-# 参考
-pppp -english
-翻译了English
+---
+comments: true
+search:
+  exclude: true
+---
+
+# Resources
+
+Additional resources, external links, articles and more. ✈️

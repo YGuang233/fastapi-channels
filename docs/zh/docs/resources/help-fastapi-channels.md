@@ -1,3 +1,8 @@
+---
+search:
+  exclude: true
+---
+
 # 帮助 FastAPI-Channels 与求助
 
 您喜欢 **FastAPI-Channels** 吗？
@@ -84,7 +89,7 @@
 
 * <a href="https://github.com/sponsors/tiangolo" class="external-link" target="_blank">Sebastián Ramírez （FastAPI）</a>
 * <a href="https://github.com/sponsors/samuelcolvin" class="external-link" target="_blank">Samuel Colvin （Pydantic）</a>
-* <a href="https://github.com/sponsors/encode" class="external-link" target="_blank">Encode （Starlette, Uvicorn）</a>
+* <a href="https://github.com/sponsors/encode" class="external-link" target="_blank">Encode （Starlette, Uvicorn, Broadcaster）</a>
 
 ---
 

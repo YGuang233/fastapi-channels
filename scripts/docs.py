@@ -27,12 +27,12 @@ missing_translation_snippet = """
 """
 
 non_translated_sections = [
-    "reference/",
+    # "reference/",
     "release-notes.md",
     "dev-people.md",
     "external-links.md",
     "newsletter.md",
-    "management-tasks.md",
+    # "management-tasks.md",
     "management.md",
 ]
 
@@ -230,7 +230,7 @@ def build_all() -> None:
     # Windows has a limit of 64 handles for WaitForMultipleObjects
     # But my local Windows is usually smaller than this value
     # Reduce pool size further to avoid hitting the handle limit
-    max_pool_size = 60 if os.name == 'nt' else cpu_count * 4
+    max_pool_size = 60 if os.name == "nt" else cpu_count * 4
     process_pool_size = min(cpu_count * 4, max_pool_size)
     typer.echo(f"Using process pool size: {process_pool_size}")
     with Pool(process_pool_size) as p:
@@ -357,7 +357,7 @@ def verify_config() -> None:
     typer.echo("Valid mkdocs.yml ✅")
 
 
-# @app.command()
+@app.command()
 def verify_non_translated() -> None:
     """
     Verify there are no files in the non translatable pages.

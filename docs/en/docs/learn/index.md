@@ -1,5 +1,11 @@
-# 学习
--english
-以下是学习 **FastAPI** 的介绍部分和教程。
+---
+comments: true
+search:
+  exclude: true
+---
 
-您可以认为这是一本 **书**，一门 **课程**，是 **官方** 且推荐的学习FastAPI的方法。😎
+# Learn
+
+Here are the introductory sections and the tutorials to learn **FastAPI-Channels**.
+
+You could consider this a **book**, a **course**, the **official** and recommended way to learn FastAPI-Channels. 😎

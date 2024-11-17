@@ -1,3 +1,9 @@
+---
+comments: true
+search:
+  exclude: true
+---
+
 # 开发 - 贡献
 
 首先，你可能想了解 [帮助 FastAPI-Channels 及获取帮助](./resources/help-fastapi-channels.md){.internal-link target=_blank}的基本方式。
@@ -275,17 +281,17 @@ $ uvicorn tutorial001:app --reload
 
 * 每翻译一个页面新增一个 pull request。这将使其他人更容易对其进行评审。
 
-对于我（译注：作者使用繁体中文和英语）不懂的语言，我将在等待其他人评审翻译之后将其合并。
+对于我（译注：作者使用简体中文和英语，虽然英语有些生硬）不懂的语言，我将在等待其他人评审翻译之后将其合并。
 
 * 你还可以查看是否有你所用语言的翻译，并对其进行评审，这将帮助我了解翻译是否正确以及能否将其合并。
     * 可以在 <a href="https://github.com/YGuang233/fastapi-channels/discussions/categories/translations" class="external-link" target="_blank">GitHub Discussions</a> 中查看。
-    * 也可以在现有 PR 中通过你使用的语言标签来筛选对应的 PR，举个例子，对于繁体中文，标签是 <a href="https://github.com/YGuang233/fastapi-channels/pulls?q=is%3Apr+is%3Aopen+sort%3Aupdated-desc+label%3Alang-es+label%3A%22awaiting+review%22" class="external-link" target="_blank">`lang-es`</a>。
+    * 也可以在现有 PR 中通过你使用的语言标签来筛选对应的 PR，举个例子，对于繁体中文，标签是 <a href="https://github.com/YGuang233/fastapi-channels/pulls?q=is%3Apr+is%3Aopen+sort%3Aupdated-desc+label%3Alang-zh-hant+label%3A%22awaiting+review%22" class="external-link" target="_blank">`lang-zh-hant`</a>。
 
 * 请使用相同的 Python 示例，且只需翻译文档中的文本，不用修改其它东西。
 
 * 请使用相同的图片、文件名以及链接地址，不用修改其它东西。
 
-* 你可以从 <a href="https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes" class="external-link" target="_blank">ISO 639-1 代码列表</a> 表中查找你想要翻译语言的两位字母代码。
+* 你可以从 <a href="https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes" class="external-link" target="_blank">ISO 639-1 代码列表</a> 表中查找你想要翻译语言的两个字母代码。
 
 #### 已有的语言
 
@@ -304,7 +310,7 @@ $ uvicorn tutorial001:app --reload
 
 ```console
 // Use the command "live" and pass the language code as a CLI argument
-$ python ./scripts/docs.py live es
+$ python ./scripts/docs.py live zh-hant
 
 <span style="color: green;">[INFO]</span> Serving on http://127.0.0.1:8008
 <span style="color: green;">[INFO]</span> Start watching changes
@@ -317,10 +323,10 @@ $ python ./scripts/docs.py live es
 
     或者你也可以手动执行和该脚本一样的操作
     
-    进入语言目录，对于繁体中文的翻译，目录是 `docs/es/`:
+    进入语言目录，对于繁体中文的翻译，目录是 `docs/zh-hant/`:
     
     ```console
-    $ cd docs/es/
+    $ cd docs/zh-hant/
     ```
     
     在该目录执行 `mkdocs` 命令
@@ -357,46 +363,83 @@ docs/en/docs/features.md
 
 现在，你可以翻译这些内容并在保存文件后进行预览。
 
+#### 不要翻译这些页面
+
+🚨 不要翻译:
+
+* `reference/`文件夹下的文件
+* `release-notes.md`
+* `dev-people.md`
+* `external-links.md`
+* `newsletter.md`
+[//]: # (* `management-tasks.md`)
+* `management.md`
+
+
 #### 新语言
 
-假设你想要为尚未有任何页面被翻译的语言添加翻译。
+!!! warning
 
-假设你想要添加克里奥尔语翻译，而且文档中还没有该语言的翻译。
+    目前仅支持 `zh`，`zh-hant`，`en` 三种语言的翻译贡献，不支持额外的语言贡献。觉得我原始文档写的不够详细，表达不够准确的可以提 PR 表达你的修改意见
 
-点击上面提到的“ISO 639-1 代码列表”链接，可以查到“克里奥尔语”的代码为 `ht`。
+[//]: # (假设你想要为尚未有任何页面被翻译的语言添加翻译。)
 
-下一步是运行脚本以生成新的翻译目录：
+[//]: # ()
+[//]: # (假设你想要添加克里奥尔语翻译，而且文档中还没有该语言的翻译。)
 
-<div class="termy">
+[//]: # ()
+[//]: # (点击上面提到的“ISO 639-1 代码列表”链接，可以查到“克里奥尔语”的代码为 `ht`。)
 
-```console
-// Use the command new-lang, pass the language code as a CLI argument
-$ python ./scripts/docs.py new-lang ht
+[//]: # ()
+[//]: # (下一步是运行脚本以生成新的翻译目录：)
 
-Successfully initialized: docs/ht
-```
+[//]: # ()
+[//]: # (<div class="termy">)
 
-</div>
+[//]: # ()
+[//]: # (```console)
 
-现在，你可以在编辑器中查看新创建的目录 `docs/ht/`。
+[//]: # (// Use the command new-lang, pass the language code as a CLI argument)
 
-这条命令会生成一个从 `en` 版本继承了所有属性的配置文件 `docs/ht/mkdocs.yml`:
+[//]: # ($ python ./scripts/docs.py new-lang ht)
 
-```yaml
-INHERIT: ../zh/mkdocs.yml
-```
+[//]: # ()
+[//]: # (Successfully initialized: docs/ht)
 
-??? tip
+[//]: # (```)
 
-    你也可以自己手动创建包含这些内容的文件。
+[//]: # ()
+[//]: # (</div>)
 
-这条命令还会生成一个文档主页 `docs/ht/index.md`，你可以从这个文件开始翻译。
+[//]: # ()
+[//]: # (现在，你可以在编辑器中查看新创建的目录 `docs/ht/`。)
 
-然后，你可以根据上面的"已有语言"的指引继续进行翻译。
+[//]: # ()
+[//]: # (这条命令会生成一个从 `zh` 版本继承了所有属性的配置文件 `docs/ht/mkdocs.yml`:)
 
-翻译完成后，你就可以用 `docs/ht/mkdocs.yml` 和 `docs/ht/index.md` 发起 PR 了。🎉
+[//]: # ()
+[//]: # (```yaml)
 
-提交PR前请阅读这个[页面](./resources/management-tasks.md)，它会增加你提交的PR合并率
+[//]: # (INHERIT: ../zh/mkdocs.yml)
+
+[//]: # (```)
+
+[//]: # ()
+[//]: # (??? tip)
+
+[//]: # ()
+[//]: # (    你也可以自己手动创建包含这些内容的文件。)
+
+[//]: # ()
+[//]: # (这条命令还会生成一个文档主页 `docs/ht/index.md`，你可以从这个文件开始翻译。)
+
+[//]: # ()
+[//]: # (然后，你可以根据上面的"已有语言"的指引继续进行翻译。)
+
+[//]: # ()
+[//]: # (翻译完成后，你就可以用 `docs/ht/mkdocs.yml` 和 `docs/ht/index.md` 发起 PR 了。🎉)
+
+[//]: # (提交PR前请阅读这个[页面]&#40;./resources/management-tasks.md&#41;，它会增加你提交的PR合并率)
 
 #### 预览结果
 
@@ -439,16 +482,23 @@ Serving at: http://127.0.0.1:8008
 
 </div>
 
-## 测试
+[//]: # (## 测试)
 
-你可以在本地运行下面的脚本来测试所有代码并生成 HTML 格式的覆盖率报告：
+[//]: # ()
+[//]: # (你可以在本地运行下面的脚本来测试所有代码并生成 HTML 格式的覆盖率报告：)
 
-<div class="termy">
+[//]: # ()
+[//]: # (<div class="termy">)
 
-```console
-$ bash scripts/test-cov-html.sh
-```
+[//]: # ()
+[//]: # (```console)
 
-</div>
+[//]: # ($ bash scripts/test-cov-html.sh)
 
-该命令生成了一个 `./htmlcov/` 目录，如果你在浏览器中打开 `./htmlcov/index.html` 文件，你可以交互式地浏览被测试所覆盖的代码区块，并注意是否缺少了任何区块。
+[//]: # (```)
+
+[//]: # ()
+[//]: # (</div>)
+
+[//]: # ()
+[//]: # (该命令生成了一个 `./htmlcov/` 目录，如果你在浏览器中打开 `./htmlcov/index.html` 文件，你可以交互式地浏览被测试所覆盖的代码区块，并注意是否缺少了任何区块。)

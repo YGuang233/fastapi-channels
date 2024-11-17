@@ -69,7 +69,7 @@ Issues = "https://github.com/YGuang233/fastapi-channels/issues"
 Changelog = "https:/fc.bxzdyg.cn/release-notes/"
 
 [project.optional-dependencies]
-dev = ["black"]
+
 standard = [
     "fastapi[standard] >=0.110.0",
 ]
@@ -198,7 +198,6 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
-"docs_src/dependencies/tutorial007.py" = ["F821"]
 
 [tool.ruff.lint.isort]
 known-third-party = ["fastapi", "pydantic", "starlette", 'boradcaster', 'fastapi-limiter']

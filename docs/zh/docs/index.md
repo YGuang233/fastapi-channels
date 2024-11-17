@@ -31,14 +31,13 @@ comments: true
 
 <img src="https://github.com/user-attachments/assets/593ba9c9-4b23-46bf-8697-bee953372010" alt='WebSockets Demo'>
 
-```python hl_lines="8-14 74 87 136"
+```python hl_lines="7-13 70 83 138" linenums="1"
 from typing import Type, Union, Any, Optional
 
-from fastapi import FastAPI, WebSocket
-from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.templating import Jinja2Templates
-
+from fastapi import FastAPI, WebSocket
+from pydantic import BaseModel
 from fastapi_channels import add_channel
 from fastapi_channels.channels import BaseChannel, Channel
 from fastapi_channels.decorators import action
@@ -46,15 +45,12 @@ from fastapi_channels.exceptions import PermissionDenied
 from fastapi_channels.permission import AllowAny
 from fastapi_channels.throttling import limiter
 from fastapi_channels.used import PersonChannel, GroupChannel
-from path import TemplatePath
+
+from path import TemplatePath # 运行此案例，请将完整的example文件克隆
 
 templates = Jinja2Templates(TemplatePath)
 app = FastAPI()
-add_channel(
-  app,
-  url="redis://localhost:6379",
-  limiter_url="redis://localhost:6379"
-)
+add_channel(app, url="redis://localhost:6379", limiter_url="redis://localhost:6379")
 
 global_channels_details = {}
 
@@ -101,7 +97,7 @@ class ResponseModel(BaseModel):
     errors: Optional[str] = None
     request_id: int = 1
 
-    def create(self):
+    def create(self) -> str:
         return self.model_dump_json(exclude_none=True)
 
 
@@ -127,26 +123,26 @@ class PersonalChatRoom(PersonChannel):
     @action("count")
     async def get_count(self, websocket: WebSocket, channel: str, data: dict, **kwargs):
         data.update({'message': await self.get_connection_count(channel)})
-        await self.broadcast_to_personal(websocket, await self.encode(data))
+        await self.broadcast_to_personal(websocket, data)
 
     @action("message")  # 广播消息
     async def send_message(
             self, websocket: WebSocket, channel: str, data: dict, **kwargs
     ):
-        await self.broadcast_to_channel(channel, await self.encode(data))
+        await self.broadcast_to_channel(channel, data)
 
     @action(deprecated=True)  # action被废弃不关闭websocket
     async def deprecated_action(
             self, websocket: WebSocket, channel: str, data: dict, **kwargs
     ):
         data.update({"message": "发送消息"})
-        await self.broadcast_to_personal(websocket, self.encode(data))
+        await self.broadcast_to_personal(websocket, data)
 
     @action("permission_denied", permission=False)  # 返回权限不足的错误响应
     async def permission_false(
             self, websocket: WebSocket, channel: str, data: dict, **kwargs
     ):
-        await self.broadcast_to_channel(channel, self.encode(data))
+        await self.broadcast_to_channel(channel, data)
 
     @action(permission=AllowAny)  # 抛出异常不但关闭websocket
     async def error(self, websocket: WebSocket, channel: str, data: dict, **kwargs):
@@ -158,7 +154,7 @@ class PersonalChatRoom(PersonChannel):
 
 
 person_chatroom, person_chatroom_name = add_global_channels_details(
-    PersonalChatRoom, name="chatroom_ws_person"
+    PersonalChatRoom(), name="chatroom_ws_person"
 )
 
 
@@ -215,14 +211,13 @@ group_chatroom.add_event_handler("leave", leave_room)
 #     yield
 #     await person_chatroom.broadcast_to_channel(channel, 'leave successfully')
 # person_chatroom = PersonalChatRoom(lifespan=lifespan)
-# 因为这里的channel是在实例化后的`connect`中被传入的`
-# 我将一些lifespan的操作放到了channel,这有着极大的耦合，后续将解决这个问题
+# 因为这里的channel是在实例化后的`connect`中被传入的`，因为我将一些lifespan的操作放到了channel,有着极大的耦合，后续将解决这个问题
 
 
 @limiter(seconds=3, times=1)
 @group_chatroom.action("message")  # 消息发送解析和#装饰器异常
 async def send_message(websocket: WebSocket, channel: str, data: dict, **kwargs):
-    await group_chatroom.broadcast_to_channel(channel, await group_chatroom.encode(data))
+    await group_chatroom.broadcast_to_channel(channel, data)
 
 
 @group_chatroom.action("error_true")  # 触发异常，主机关闭连接

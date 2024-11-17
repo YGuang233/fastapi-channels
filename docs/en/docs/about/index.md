@@ -1,3 +1,10 @@
-# 关于
+---
+comments: true
+search:
+  exclude: true
+---
 
-这是关于页面 -en
+
+# About
+
+About FastAPI-Channels, its design, inspiration and more. 🤓

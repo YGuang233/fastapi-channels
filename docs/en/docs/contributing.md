@@ -1,6 +1,12 @@
+---
+comments: true
+search:
+  exclude: true
+---
+
 # Development - Contributing
 
-First, you might want to see the basic ways to [help FastAPI and get help](help-fastapi.md){.internal-link target=_blank}.
+First, you might want to see the basic ways to [help FastAPI-Channels and get help](./resources/help-fastapi.md){.internal-link target=_blank}.
 
 ## Developing
 
@@ -34,13 +40,12 @@ And if you update that local FastAPI source code when you run that Python file a
 
 That way, you don't have to "install" your local version to be able to test every change.
 
-/// note | "Technical Details"
+??? "Technical Details"
 
-This only happens when you install using this included `requirements.txt` instead of running `pip install fastapi` directly.
+    This only happens when you install using this included `requirements.txt` instead of running `pip install fastapi` directly.
+    
+    That is because inside the `requirements.txt` file, the local version of FastAPI is marked to be installed in "editable" mode, with the `-e` option.
 
-That is because inside the `requirements.txt` file, the local version of FastAPI is marked to be installed in "editable" mode, with the `-e` option.
-
-///
 
 ### Format the code
 
@@ -56,19 +61,26 @@ $ bash scripts/format.sh
 
 It will also auto-sort all your imports.
 
-## Tests
+[//]: # (## Tests)
 
-There is a script that you can run locally to test all the code and generate coverage reports in HTML:
+[//]: # ()
+[//]: # (There is a script that you can run locally to test all the code and generate coverage reports in HTML:)
 
-<div class="termy">
+[//]: # ()
+[//]: # (<div class="termy">)
 
-```console
-$ bash scripts/test-cov-html.sh
-```
+[//]: # ()
+[//]: # (```console)
 
-</div>
+[//]: # ($ bash scripts/test-cov-html.sh)
 
-This command generates a directory `./htmlcov/`, if you open the file `./htmlcov/index.html` in your browser, you can explore interactively the regions of code that are covered by the tests, and notice if there is any region missing.
+[//]: # (```)
+
+[//]: # ()
+[//]: # (</div>)
+
+[//]: # ()
+[//]: # (This command generates a directory `./htmlcov/`, if you open the file `./htmlcov/index.html` in your browser, you can explore interactively the regions of code that are covered by the tests, and notice if there is any region missing.)
 
 ## Docs
 
@@ -94,23 +106,22 @@ It will serve the documentation on `http://127.0.0.1:8008`.
 
 That way, you can edit the documentation/source files and see the changes live.
 
-/// tip
+??? tip
 
-Alternatively, you can perform the same steps that scripts does manually.
+    Alternatively, you can perform the same steps that scripts does manually.
+    
+    Go into the language directory, for the main docs in English it's at `docs/en/`:
+    
+    ```console
+    $ cd docs/en/
+    ```
+    
+    Then run `mkdocs` in that directory:
+    
+    ```console
+    $ mkdocs serve --dev-addr 8008
+    ```
 
-Go into the language directory, for the main docs in English it's at `docs/en/`:
-
-```console
-$ cd docs/en/
-```
-
-Then run `mkdocs` in that directory:
-
-```console
-$ mkdocs serve --dev-addr 8008
-```
-
-///
 
 #### Typer CLI (optional)
 
@@ -137,11 +148,10 @@ The documentation uses <a href="https://www.mkdocs.org/" class="external-link" t
 
 And there are extra tools/scripts in place to handle translations in `./scripts/docs.py`.
 
-/// tip
+!!! tip
 
-You don't need to see the code in `./scripts/docs.py`, you just use it in the command line.
+    You don't need to see the code in `./scripts/docs.py`, you just use it in the command line.
 
-///
 
 All the documentation is in Markdown format in the directory `./docs/en/`.
 
@@ -191,13 +201,12 @@ Here are the steps to help with translations.
 
 * Review those pull requests, requesting changes or approving them. For the languages I don't speak, I'll wait for several others to review the translation before merging.
 
-/// tip
+!!! tip
 
-You can <a href="https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/commenting-on-a-pull-request" class="external-link" target="_blank">add comments with change suggestions</a> to existing pull requests.
+    You can <a href="https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/commenting-on-a-pull-request" class="external-link" target="_blank">add comments with change suggestions</a> to existing pull requests.
+    
+    Check the docs about <a href="https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/about-pull-request-reviews" class="external-link" target="_blank">adding a pull request review</a> to approve it or request changes.
 
-Check the docs about <a href="https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/about-pull-request-reviews" class="external-link" target="_blank">adding a pull request review</a> to approve it or request changes.
-
-///
 
 * Check if there's a <a href="https://github.com/fastapi/fastapi/discussions/categories/translations" class="external-link" target="_blank">GitHub Discussion</a> to coordinate translations for your language. You can subscribe to it, and when there's a new pull request to review, an automatic comment will be added to the discussion.
 
@@ -211,11 +220,10 @@ Let's say you want to translate a page for a language that already has translati
 
 In the case of Spanish, the 2-letter code is `es`. So, the directory for Spanish translations is located at `docs/es/`.
 
-/// tip
+!!! tip
 
-The main ("official") language is English, located at `docs/en/`.
+    The main ("official") language is English, located at `docs/en/`.
 
-///
 
 Now run the live server for the docs in Spanish:
 
@@ -232,23 +240,22 @@ $ python ./scripts/docs.py live es
 
 </div>
 
-/// tip
+??? tip
 
-Alternatively, you can perform the same steps that scripts does manually.
+    Alternatively, you can perform the same steps that scripts does manually.
+    
+    Go into the language directory, for the Spanish translations it's at `docs/es/`:
+    
+    ```console
+    $ cd docs/es/
+    ```
+    
+    Then run `mkdocs` in that directory:
+    
+    ```console
+    $ mkdocs serve --dev-addr 8008
+    ```
 
-Go into the language directory, for the Spanish translations it's at `docs/es/`:
-
-```console
-$ cd docs/es/
-```
-
-Then run `mkdocs` in that directory:
-
-```console
-$ mkdocs serve --dev-addr 8008
-```
-
-///
 
 Now you can go to <a href="http://127.0.0.1:8008" class="external-link" target="_blank">http://127.0.0.1:8008</a> and see your changes live.
 
@@ -268,11 +275,10 @@ docs/en/docs/features.md
 docs/es/docs/features.md
 ```
 
-/// tip
+??? tip
 
-Notice that the only change in the path and file name is the language code, from `en` to `es`.
+  Notice that the only change in the path and file name is the language code, from `zh` to `en`.
 
-///
 
 If you go to your browser you will see that now the docs show your new section (the info box at the top is gone). 🎉
 
@@ -284,54 +290,79 @@ Now you can translate it all and see how it looks as you save the file.
 
 * Files under `reference/`
 * `release-notes.md`
-* `fastapi-people.md`
+* `dev-people.md`
 * `external-links.md`
 * `newsletter.md`
-* `management-tasks.md`
+[//]: # (* `management-tasks.md`)
 * `management.md`
 
 Some of these files are updated very frequently and a translation would always be behind, or they include the main content from English source files, etc.
 
 #### New Language
 
-Let's say that you want to add translations for a language that is not yet translated, not even some pages.
+!!! warning
 
-Let's say you want to add translations for Creole, and it's not yet there in the docs.
+    Currently, only translation contributions for `zh`, `zh hant`, and `en` languages are supported, and no additional language contributions are supported. If you feel that my original document was not detailed enough and the expression was not accurate enough, you can submit a PR to express your revision suggestions
 
-Checking the link from above, the code for "Creole" is `ht`.
+[//]: # (Let's say that you want to add translations for a language that is not yet translated, not even some pages.)
 
-The next step is to run the script to generate a new translation directory:
+[//]: # ()
+[//]: # (Let's say you want to add translations for Creole, and it's not yet there in the docs.)
 
-<div class="termy">
+[//]: # ()
+[//]: # (Checking the link from above, the code for "Creole" is `ht`.)
 
-```console
-// Use the command new-lang, pass the language code as a CLI argument
-$ python ./scripts/docs.py new-lang ht
+[//]: # ()
+[//]: # (The next step is to run the script to generate a new translation directory:)
 
-Successfully initialized: docs/ht
-```
+[//]: # ()
+[//]: # (<div class="termy">)
 
-</div>
+[//]: # ()
+[//]: # (```console)
 
-Now you can check in your code editor the newly created directory `docs/ht/`.
+[//]: # (// Use the command new-lang, pass the language code as a CLI argument)
 
-That command created a file `docs/ht/mkdocs.yml` with a simple config that inherits everything from the `en` version:
+[//]: # ($ python ./scripts/docs.py new-lang ht)
 
-```yaml
-INHERIT: ../en/mkdocs.yml
-```
+[//]: # ()
+[//]: # (Successfully initialized: docs/ht)
 
-/// tip
+[//]: # (```)
 
-You could also simply create that file with those contents manually.
+[//]: # ()
+[//]: # (</div>)
 
-///
+[//]: # ()
+[//]: # (Now you can check in your code editor the newly created directory `docs/ht/`.)
 
-That command also created a dummy file `docs/ht/index.md` for the main page, you can start by translating that one.
+[//]: # ()
+[//]: # (That command created a file `docs/ht/mkdocs.yml` with a simple config that inherits everything from the `en` version:)
 
-You can continue with the previous instructions for an "Existing Language" for that process.
+[//]: # ()
+[//]: # (```yaml)
 
-You can make the first pull request with those two files, `docs/ht/mkdocs.yml` and `docs/ht/index.md`. 🎉
+[//]: # (INHERIT: ../en/mkdocs.yml)
+
+[//]: # (```)
+
+[//]: # ()
+[//]: # (/// tip)
+
+[//]: # ()
+[//]: # (You could also simply create that file with those contents manually.)
+
+[//]: # ()
+[//]: # (///)
+
+[//]: # ()
+[//]: # (That command also created a dummy file `docs/ht/index.md` for the main page, you can start by translating that one.)
+
+[//]: # ()
+[//]: # (You can continue with the previous instructions for an "Existing Language" for that process.)
+
+[//]: # ()
+[//]: # (You can make the first pull request with those two files, `docs/ht/mkdocs.yml` and `docs/ht/index.md`. 🎉)
 
 #### Preview the result
 
@@ -372,22 +403,31 @@ Serving at: http://127.0.0.1:8008
 
 </div>
 
-#### Translation specific tips and guidelines
+[//]: # (#### Translation specific tips and guidelines)
 
-* Translate only the Markdown documents (`.md`). Do not translate the code examples at `./docs_src`.
+[//]: # ()
+[//]: # (* Translate only the Markdown documents &#40;`.md`&#41;. Do not translate the code examples at `./docs_src`.)
 
-* In code blocks within the Markdown document, translate comments (`# a comment`), but leave the rest unchanged.
+[//]: # ()
+[//]: # (* In code blocks within the Markdown document, translate comments &#40;`# a comment`&#41;, but leave the rest unchanged.)
 
-* Do not change anything enclosed in "``" (inline code).
+[//]: # ()
+[//]: # (* Do not change anything enclosed in "``" &#40;inline code&#41;.)
 
-* In lines starting with `///` translate only the ` "... Text ..."` part. Leave the rest unchanged.
+[//]: # ()
+[//]: # (* In lines starting with `///` translate only the ` "... Text ..."` part. Leave the rest unchanged.)
 
-* You can translate info boxes like `/// warning` with for example `/// warning | Achtung`. But do not change the word immediately after the `///`, it determines the color of the info box.
+[//]: # ()
+[//]: # (* You can translate info boxes like `/// warning` with for example `/// warning | Achtung`. But do not change the word immediately after the `///`, it determines the color of the info box.)
 
-* Do not change the paths in links to images, code files, Markdown documents.
+[//]: # ()
+[//]: # (* Do not change the paths in links to images, code files, Markdown documents.)
 
-* However, when a Markdown document is translated, the `#hash-parts` in links to its headings may change. Update these links if possible.
-    * Search for such links in the translated document using the regex `#[^# ]`.
-    * Search in all documents already translated into your language for `your-translated-document.md`. For example VS Code has an option "Edit" -> "Find in Files".
-    * When translating a document, do not "pre-translate" `#hash-parts` that link to headings in untranslated documents.
-这里也翻译了，哈哈哈
+[//]: # ()
+[//]: # (* However, when a Markdown document is translated, the `#hash-parts` in links to its headings may change. Update these links if possible.)
+
+[//]: # (    * Search for such links in the translated document using the regex `#[^# ]`.)
+
+[//]: # (    * Search in all documents already translated into your language for `your-translated-document.md`. For example VS Code has an option "Edit" -> "Find in Files".)
+
+[//]: # (    * When translating a document, do not "pre-translate" `#hash-parts` that link to headings in untranslated documents.)

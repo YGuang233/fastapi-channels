@@ -1,3 +1,0 @@
-# 特点
-fastapi-channels基于fastapi为基础开发的项目
-fastapi风格的编写格式，相当于子应用

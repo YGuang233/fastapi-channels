@@ -30,7 +30,6 @@ from starlette.requests import Request
 from starlette.templating import Jinja2Templates
 from fastapi import FastAPI, WebSocket
 from pydantic import BaseModel
-
 from fastapi_channels import add_channel
 from fastapi_channels.channels import BaseChannel, Channel
 from fastapi_channels.decorators import action
@@ -38,7 +37,8 @@ from fastapi_channels.exceptions import PermissionDenied
 from fastapi_channels.permission import AllowAny
 from fastapi_channels.throttling import limiter
 from fastapi_channels.used import PersonChannel, GroupChannel
-from path import TemplatePath
+
+from path import TemplatePath # To run this case, please clone the complete example file
 
 templates = Jinja2Templates(TemplatePath)
 app = FastAPI()
@@ -89,7 +89,7 @@ class ResponseModel(BaseModel):
     errors: Optional[str] = None
     request_id: int = 1
 
-    def create(self):
+    def create(self) -> str:
         return self.model_dump_json(exclude_none=True)
 
 class BaselChatRoom(BaseChannel): ...
@@ -115,15 +115,14 @@ class PersonalChatRoom(PersonChannel):
     @action("count")  
     async def get_count(self, websocket: WebSocket, channel: str, data: dict, **kwargs):
         data.update({'message': await self.get_connection_count(channel)})
-        await self.broadcast_to_personal(websocket, await self.encode(data))
-
+        await self.broadcast_to_personal(websocket, data)
 
     @action("message")  # broadcast message
     async def send_message(
         self, websocket: WebSocket, channel: str, data: dict, **kwargs
     ):
-        await self.broadcast_to_channel(channel, await self.encode(data))
-
+        await self.broadcast_to_channel(channel, data)
+        
     @action(
         deprecated=True
     )  # The action is discarded and returns a discarded message. It will not close the websocket
@@ -131,15 +130,15 @@ class PersonalChatRoom(PersonChannel):
         self, websocket: WebSocket, channel: str, data: dict, **kwargs
     ):
         data.update({"message": "send message"})
-        await self.broadcast_to_personal(websocket, self.encode(data))
-
+        await self.broadcast_to_personal(websocket, data)
+        
     @action(
         "permission_denied", permission=False
     )  # return error response with insufficient permissions
     async def permission_false(
         self, websocket: WebSocket, channel: str, data: dict, **kwargs
     ):
-        await self.broadcast_to_channel(channel, self.encode(data))
+        await self.broadcast_to_channel(channel, data)
 
     @action(
         permission=AllowAny
@@ -153,7 +152,7 @@ class PersonalChatRoom(PersonChannel):
 
 
 person_chatroom, person_chatroom_name = add_global_channels_details(
-    PersonalChatRoom, name="chatroom_ws_person"
+    PersonalChatRoom(), name="chatroom_ws_person"
 )
 
 
@@ -218,7 +217,7 @@ group_chatroom.add_event_handler("leave", leave_room)
 @limiter(seconds=3, times=1)
 @group_chatroom.action("message")  # 消息发送解析和#装饰器异常
 async def send_message(websocket: WebSocket, channel: str, data: dict, **kwargs):
-    await group_chatroom.broadcast_to_channel(channel, await group_chatroom.encode(data))
+    await group_chatroom.broadcast_to_channel(channel, data)
 
 
 @group_chatroom.action("error_true")  # Trigger exception, host close connection
@@ -248,6 +247,11 @@ if __name__ == "__main__":
 ```
 The HTML template for the front end [is available here](https://github.com/YGuang233/fastapi-channels/blob/master/example/templates/index.html), and is adapted from [Pieter Noordhuis's PUB/SUB demo](https://gist.github.com/pietern/348262) and [Tom Christie's Broadcaster demo](https://github.com/encode/broadcaster/blob/master/example/templates/index.html).
 
+Please clone the entire example file to run this case
+
+<a href="https://fc.bxzdyg.com/zh/tutorial/">Tutorial - User Guide</a> There are more complete examples with more features included.
+
+
 ## Goal and Achieve
 
 - [x] Permission authentication
@@ -255,6 +259,7 @@ The HTML template for the front end [is available here](https://github.com/YGuan
     - [x] Permission verification for accessing 'action'
     - [ ] Basic user authentication scheme
 - [x] Customize exceptions and global capture, and throw exceptions to control connection status
+- [ ] Additional logging
 - [ ] Paginator
 - [x] Current limiter
     - [x] fastapi-limiter

@@ -9,12 +9,12 @@ from mkdocs.structure.nav import Link, Navigation, Section
 from mkdocs.structure.pages import Page
 
 non_translated_sections = [  # 不进行翻译的文件和区域
-    "reference/",
+    # "reference/",
     "release-notes.md",
-    "fastapi-people.md",
+    "dev-people.md",
     "external-links.md",
     "newsletter.md",
-    "management-tasks.md",
+    # "management-tasks.md",
     "management.md",
 ]
 

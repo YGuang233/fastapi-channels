@@ -1,3 +1,8 @@
+---
+search:
+  exclude: true
+---
+
 # 开发 - PR 和 commit message
 
 ## label 列表
@@ -16,12 +21,14 @@
 
 有很多`label`不被`latest_changes`收录，但是被使用着，如下面的
 
-| label        | desc                             |
-|--------------|----------------------------------|
-| lang-en      | English translations             |
-| lang-zh-hant | Traditional Chinese translations |
+| label           | desc                                                         |
+|-----------------|--------------------------------------------------------------|
+| lang-en         | English translations                                         |
+| lang-zh         | Traditional Chinese translations                             |
+| lang-zh-hant    | Traditional Chinese translations                             |
+| awaiting-review | Comments from those who understand this language are needed. |
 
-## 提交emoji前缀参考
+## 提交gitmoji前缀参考
 
 | emoji | 描述            | label参考           | commit message 语句参考                                                                     |
 |-------|---------------|-------------------|-----------------------------------------------------------------------------------------|
@@ -36,4 +43,4 @@
 | 👷    | 工作流、机器人相关操作   | internal          | 👷Switch from Codecov to Smokeshow plus pytest-cov to pure coverage for internal tests. |
 | 👥    | 修改更新内部开发人员文档  | internal          | 👥 Update Dev People                                                                    |
 
-> [更多](https://gitmoji.dev/) 请直接使用表情符号
+> [更多gitmoji](https://gitmoji.dev/) 请直接使用表情符号
