@@ -17,12 +17,8 @@ from fastapi_channels.channels import BaseChannel
 from fastapi_limiter.depends import WebSocketRateLimiter
 
 app = FastAPI()
-add_channel(
-    app,
-    url="redis://localhost:6379",
-    limiter_url="redis://localhost:6379",
-    throttle_classes=WebSocketRateLimiter(times=2, seconds=60)
-)
+add_channel(app, url="redis://localhost:6379", limiter_url="redis://localhost:6379",
+            throttle_classes=WebSocketRateLimiter(times=2, seconds=60))
 c = BaseChannel()
 
 
@@ -38,11 +34,7 @@ from fastapi_channels.channels import BaseChannel
 from fastapi_limiter.depends import WebSocketRateLimiter
 
 app = FastAPI()
-add_channel(
-    app,
-    url="redis://localhost:6379",
-    limiter_url="redis://localhost:6379"
-)
+add_channel(app, url="redis://localhost:6379", limiter_url="redis://localhost:6379")
 c = BaseChannel(throttle_classes=WebSocketRateLimiter(times=2, seconds=60))
 
 

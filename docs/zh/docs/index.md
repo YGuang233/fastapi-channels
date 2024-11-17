@@ -46,7 +46,7 @@ from fastapi_channels.permission import AllowAny
 from fastapi_channels.throttling import limiter
 from fastapi_channels.used import PersonChannel, GroupChannel
 
-from path import TemplatePath # 运行此案例，请将完整的example文件克隆
+from path import TemplatePath  # 运行此案例，请将完整的example文件克隆
 
 templates = Jinja2Templates(TemplatePath)
 app = FastAPI()

@@ -38,7 +38,7 @@ from fastapi_channels.permission import AllowAny
 from fastapi_channels.throttling import limiter
 from fastapi_channels.used import PersonChannel, GroupChannel
 
-from path import TemplatePath # To run this case, please clone the complete example file
+from path import TemplatePath  # To run this case, please clone the complete example file
 
 templates = Jinja2Templates(TemplatePath)
 app = FastAPI()
@@ -48,7 +48,7 @@ global_channels_details = {}
 
 
 def add_global_channels_details(
-    channel: Union[Type[BaseChannel], BaseChannel], name: str
+        channel: Union[Type[BaseChannel], BaseChannel], name: str
 ) -> tuple[BaseChannel, str]:
     # Check whether the input is a class or an instance,
     # but return instance objects without repeating instantiation
@@ -81,6 +81,7 @@ async def homepage(request: Request):
         context,
     )
 
+
 class ResponseModel(BaseModel):
     action: str
     user: str
@@ -91,6 +92,7 @@ class ResponseModel(BaseModel):
 
     def create(self) -> str:
         return self.model_dump_json(exclude_none=True)
+
 
 class BaselChatRoom(BaseChannel): ...
 
@@ -106,37 +108,37 @@ async def base_chatroom_ws(websocket: WebSocket):
 
 
 class PersonalChatRoom(PersonChannel):
-  
+
     @staticmethod
     async def encode_json(data: dict) -> str:
         return ResponseModel(**data).create()
-    
+
     @limiter(times=2, seconds=3000)  # Request exceeded, but it will not close websocket
-    @action("count")  
+    @action("count")
     async def get_count(self, websocket: WebSocket, channel: str, data: dict, **kwargs):
         data.update({'message': await self.get_connection_count(channel)})
         await self.broadcast_to_personal(websocket, data)
 
     @action("message")  # broadcast message
     async def send_message(
-        self, websocket: WebSocket, channel: str, data: dict, **kwargs
+            self, websocket: WebSocket, channel: str, data: dict, **kwargs
     ):
         await self.broadcast_to_channel(channel, data)
-        
+
     @action(
         deprecated=True
     )  # The action is discarded and returns a discarded message. It will not close the websocket
     async def deprecated_action(
-        self, websocket: WebSocket, channel: str, data: dict, **kwargs
+            self, websocket: WebSocket, channel: str, data: dict, **kwargs
     ):
         data.update({"message": "send message"})
         await self.broadcast_to_personal(websocket, data)
-        
+
     @action(
         "permission_denied", permission=False
     )  # return error response with insufficient permissions
     async def permission_false(
-        self, websocket: WebSocket, channel: str, data: dict, **kwargs
+            self, websocket: WebSocket, channel: str, data: dict, **kwargs
     ):
         await self.broadcast_to_channel(channel, data)
 
@@ -166,6 +168,7 @@ class GroupChatRoom(GroupChannel):
     async def encode_json(data: dict) -> str:
         return ResponseModel(**data).create()
 
+
 group_chatroom = GroupChatRoom()
 group_chatroom_name = "chatroom_ws_group"
 
@@ -176,15 +179,15 @@ async def group_chatroom_ws(websocket: WebSocket):
 
 
 async def join_room(
-    websocket: WebSocket,
-    channel: str,
+        websocket: WebSocket,
+        channel: str,
 ):
     await group_chatroom.broadcast_to_personal(websocket, "Join successfully")
 
 
 async def leave_room(
-    websocket: WebSocket,
-    channel: str,
+        websocket: WebSocket,
+        channel: str,
 ):
     # error: 👆 If you leave the room through an `action`, it will output this,
     # but if the client closes it directly, it will trigger the websocket to not connect,
@@ -222,7 +225,7 @@ async def send_message(websocket: WebSocket, channel: str, data: dict, **kwargs)
 
 @group_chatroom.action("error_true")  # Trigger exception, host close connection
 async def send_error_and_close(
-    websocket: WebSocket, channel: str, data: dict, **kwargs
+        websocket: WebSocket, channel: str, data: dict, **kwargs
 ):
     raise PermissionDenied(close=True)
 

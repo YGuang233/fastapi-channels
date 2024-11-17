@@ -1,28 +1,24 @@
 from typing import Type, Union, Any, Optional
 
+from fastapi import FastAPI, WebSocket
+from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.templating import Jinja2Templates
-from fastapi import FastAPI, WebSocket,WebSocketException
-from pydantic import BaseModel
+
 from fastapi_channels import add_channel
 from fastapi_channels.channels import BaseChannel, Channel
 from fastapi_channels.decorators import action
-from fastapi_channels.exceptions import PermissionDenied,WebSocketExceptionHandler
+from fastapi_channels.exceptions import PermissionDenied
 from fastapi_channels.permission import AllowAny
 from fastapi_channels.throttling import limiter
 from fastapi_channels.used import PersonChannel, GroupChannel
-
 from path import TemplatePath  # 运行此案例，请将完整的example文件克隆
 
 templates = Jinja2Templates(TemplatePath)
 app = FastAPI()
 # add_channel(app, url="redis://localhost:6379", limiter_url="redis://localhost:6379")
-add_channel(
-    app,
-    url="redis://:r1e3d1i4s520@192.168.129.128:6379/14",
-    limiter_url="redis://:r1e3d1i4s520@192.168.129.128:6379/14",
-    add_exception_handlers=True
-)
+add_channel(app, add_exception_handlers=True, url="redis://:r1e3d1i4s520@192.168.129.128:6379/14",
+            limiter_url="redis://:r1e3d1i4s520@192.168.129.128:6379/14")
 
 global_channels_details = {}
 

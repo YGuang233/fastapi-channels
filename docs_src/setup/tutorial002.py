@@ -19,12 +19,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator:
 
 app = FastAPI(lifespan=lifespan)
 
-add_channel(
-    app,
-    add_exception_handlers=True,
-    broadcast=Broadcast(url="memory://"),
-    limiter_url="redis://localhost:6379",
-)
+add_channel(app, add_exception_handlers=True, broadcast=Broadcast(url="memory://"),
+            limiter_url="redis://localhost:6379")
 c = BaseChannel()
 
 

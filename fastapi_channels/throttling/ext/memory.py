@@ -1,16 +1,12 @@
 import asyncio
 from typing import Annotated, Callable, Optional
 
-from fastapi_limiter import default_identifier
 from pydantic import Field
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.websockets import WebSocket
 
-from ..callback import (
-    http_default_callback,
-    ws_default_callback,
-)
+from .. import Throttle
 from ._base import RateLimiter, ThrottleBackend
 
 
@@ -42,9 +38,7 @@ class MemoryRateLimiter(RateLimiter):
         self._requests[key] += 1
         return self._requests[key] <= self.times
 
-    async def __call__(
-        self, request: Request, response: Response, prefix: Optional[str] = None
-    ):
+    async def __call__(self, request: Request, response: Response):
         route_index = 0
         dep_index = 0
         for i, route in enumerate(request.app.routes):
@@ -54,11 +48,11 @@ class MemoryRateLimiter(RateLimiter):
                     if self is dependency.dependency:
                         dep_index = j
                         break
-
-        identifier = self.identifier or (lambda req: req.client.host)
-        callback = self.callback or http_default_callback
+        # moved here because constructor run before app startup
+        identifier = self.identifier or Throttle.identifier
+        callback = self.callback or Throttle.http_callback
         rate_key = await identifier(request)
-        key = f"{prefix},{rate_key}:{route_index}:{dep_index}"
+        key = f"{Throttle.prefix},{rate_key}:{route_index}:{dep_index}"
 
         if key not in self._locks:
             self._locks[key] = asyncio.Lock()
@@ -71,32 +65,17 @@ class MemoryRateLimiter(RateLimiter):
 
 
 class MemoryWebSocketRateLimiter(MemoryRateLimiter):
-    async def __call__(
-        self, ws: WebSocket, context_key="", prefix: Optional[str] = None
-    ):
-        rate_key = await self.identifier(ws)
-        key = f"{prefix}:ws:{rate_key}:{context_key}"
+    async def __call__(self, ws: WebSocket, context_key="") -> None:
+        identifier = self.identifier or Throttle.identifier
+        rate_key = await identifier(ws)
+        key = f"{Throttle.prefix}:ws:{rate_key}:{context_key}"
         pexpire = await self._check(key)
-
+        callback = self.callback or Throttle.ws_callback
         if pexpire != 0:
-            return await self.callback(ws, pexpire)
+            return await callback(ws, pexpire)
 
 
 class MemoryThrottleBackend(ThrottleBackend):
-    def __init__(
-        self,
-        url: str,
-        redis=None,
-        prefix: str = "fastapi-channel",
-        identifier: Callable = default_identifier,
-        http_callback: Callable = http_default_callback,
-        ws_callback: Callable = ws_default_callback,
-        **kwargs,
-    ) -> None:
-        super().__init__(
-            url, redis, prefix, identifier, http_callback, ws_callback, **kwargs
-        )
-
     async def conn(self) -> None:
         pass
 

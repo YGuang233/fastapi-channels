@@ -15,7 +15,7 @@ class RateLimiter:
         hours: Annotated[int, Field(ge=-1)] = 0,
         identifier: Optional[Callable] = None,
         callback: Optional[Callable] = None,
-    ):
+    ) -> None:
         self.times = times
         self.milliseconds = (
             milliseconds + 1000 * seconds + 60000 * minutes + 3600000 * hours
@@ -23,16 +23,12 @@ class RateLimiter:
         self.identifier = identifier
         self.callback = callback
 
-    async def __call__(
-        self, request: Request, response: Response, prefix: Optional[str] = None
-    ):
+    async def __call__(self, request: Request, response: Response) -> None:
         raise NotImplementedError
 
 
 class WebSocketRateLimiter(RateLimiter):
-    async def __call__(
-        self, ws: WebSocket, context_key="", prefix: Optional[str] = None
-    ):
+    async def __call__(self, ws: WebSocket, context_key="") -> None:
         raise NotImplementedError
 
 
@@ -42,10 +38,17 @@ class ThrottleBackend:
         url: str,
     ) -> None:
         self.url = url
-        self._new_backend1 = False  # 自己关闭
-        self._new_backend2 = False  # 调用第三方库的关闭
+        self._new_backend = (
+            False  # 自己注册或调用第三方库注册了，默认自己处理关闭逻辑,否则就自己新建
+        )
 
     async def conn(self) -> None:
+        raise NotImplementedError()
+
+    async def reset(self):
+        """
+        resets the storage if it supports being reset
+        """
         raise NotImplementedError()
 
     async def close(self) -> None:
@@ -53,6 +56,7 @@ class ThrottleBackend:
 
     @property
     def ratelimiter(self) -> Callable:
+        print('ratelimiter backend')
         raise NotImplementedError
 
     @property

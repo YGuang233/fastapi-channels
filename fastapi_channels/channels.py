@@ -19,6 +19,9 @@ import anyio
 from fastapi.params import Depends
 from fastapi.types import DecoratedCallable
 from fastapi_limiter.depends import WebSocketRateLimiter
+
+# from fastapi_channels.throttling.ext._base import WebSocketRateLimiter
+# 这个应该是WebSocketRateLimiter类型的指向，这个文件内不应该使用WebSocketRateLimiter的操作
 from starlette._exception_handler import _lookup_exception_handler
 from starlette._utils import is_async_callable
 from starlette.concurrency import run_in_threadpool
@@ -190,6 +193,7 @@ class BaseChannel:
                 await handler(websocket, exc)
             else:
                 await run_in_threadpool(handler, websocket, exc)
+
 
     async def _handle(self, type: str, message: Optional[str] = None, **kwargs):
         if type == "lifespan.join.complete":

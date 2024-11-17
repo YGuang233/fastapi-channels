@@ -7,10 +7,7 @@ from fastapi_channels.exceptions import WebSocketException, WebSocketExceptionHa
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    await FastAPIChannel.init(
-        url="redis://localhost:6379",
-        limiter_url="redis://localhost:6379"
-    )
+    await FastAPIChannel.init(url="redis://localhost:6379", limiter_url="redis://localhost:6379")
     yield
     await FastAPIChannel.close()
 

@@ -3,12 +3,17 @@ from typing import Any, AsyncIterator, Callable, Optional, Sequence, TypeVar, Un
 
 from broadcaster import Broadcast, BroadcastBackend
 from fastapi import APIRouter, FastAPI
+from fastapi_limiter import FastAPILimiter
+# from fastapi_limiter.depends import WebSocketRateLimiter
+from fastapi_channels.throttling.ext._base import WebSocketRateLimiter
 from fastapi_channels.permission import AllowAny, BasePermission
 from fastapi_channels.throttling import Throttle
-from fastapi_channels.throttling.callback import default_identifier,ws_default_callback,ws_action_default_callback,http_default_callback
-from fastapi_limiter import FastAPILimiter
-from fastapi_limiter.depends import WebSocketRateLimiter
-from redis.asyncio import Redis
+from fastapi_channels.throttling.callback import (
+    default_identifier,
+    http_default_callback,
+    ws_default_callback,
+)
+from fastapi_channels.throttling.ext._base import ThrottleBackend
 
 ParentT = TypeVar("ParentT", APIRouter, FastAPI)
 
@@ -24,7 +29,7 @@ class FastAPIChannel:
     """
 
     broadcast: Optional[Broadcast] = None
-    throttle: Optional[Throttle] = None
+    # throttle: Optional[Throttle] = None # 有没有必要被反复注册？ or not 有没有必要全局使用
 
     _new_broadcast: bool = False
     _new_limiter: bool = False
@@ -38,59 +43,52 @@ class FastAPIChannel:
 
     @classmethod
     async def init(
-            cls,
-            *,
-            debug: bool = False,
-            # broadcaster
-            url: Optional[str] = None,
-            backend: Optional[BroadcastBackend] = None,
-            broadcast: Optional[Broadcast] = None,
-            # fastapi-limiter
-            limiter_url: Optional[str] = None,
-            redis: Any = None,
-            prefix: str = "fastapi-channel",
-            identifier: Optional[Callable] = default_identifier,
-            http_callback: Optional[Callable] = http_default_callback,
-            ws_callback: Optional[Callable] = ws_default_callback,
-            # other config
-            permission_classes: Optional[
-                Sequence[Union[BasePermission, str, bool, Callable]]
-            ] = None,
-            throttle_classes: Optional[WebSocketRateLimiter] = None,
-            pagination_class: Any = None,
-            # authentication
-            query_token_key: Optional[str] = None,
-            cookie_token_key: Optional[str] = None,
+        cls,
+        *,
+        debug: bool = False,
+        # broadcaster
+        url: Optional[str] = None,
+        backend: Optional[BroadcastBackend] = None,
+        broadcast: Optional[Broadcast] = None,
+        # limiter
+        limiter_url: Optional[str] = None,
+        limiter_backend: Optional[ThrottleBackend] = None,
+        storage: Any = None,  # 如果自行连接了redis 请把redis对象放在这
+        prefix: str = "fastapi-channel",
+        identifier: Callable = default_identifier,
+        http_callback: Callable = http_default_callback,
+        ws_callback: Callable = ws_default_callback,
+        # other config
+        permission_classes: Optional[
+            Sequence[Union[BasePermission, str, bool, Callable]]
+        ] = None,
+        throttle_classes: Optional[WebSocketRateLimiter] = None,
+        pagination_class: Any = None,
+        # authentication
+        query_token_key: Optional[str] = None,
+        cookie_token_key: Optional[str] = None,
     ):
         cls.debug = debug
 
         if broadcast:
             cls.broadcast = broadcast
         else:
-
             cls.broadcast = Broadcast(url=url or limiter_url, backend=backend)
             cls._new_broadcast = True
         cls.permission_classes = permission_classes or cls.permission_classes
         cls.throttle_classes = throttle_classes or cls.throttle_classes
         cls.pagination_class = pagination_class or cls.pagination_class
-        cls.throttle=Throttle(
-            url=limiter_url or url
+        # cls.throttle = Throttle(url=limiter_url or url)
+        print(1)
+        await Throttle.init(
+            url=limiter_url or url,
+            backend=limiter_backend,
+            storage=storage,
+            prefix=prefix,
+            identifier=identifier,
+            http_callback=http_callback,
+            ws_callback=ws_callback,
         )
-
-        if not FastAPILimiter.redis:
-            limiter_redis = redis or await Redis.from_url(limiter_url)
-            _fastapi_limiter_init_additional_key = {}
-            if identifier:
-                _fastapi_limiter_init_additional_key["identifier"] = identifier
-            if http_callback:
-                _fastapi_limiter_init_additional_key["http_callback"] = http_callback
-            await FastAPILimiter.init(
-                redis=limiter_redis or url,
-                prefix=prefix,
-                ws_callback=ws_callback,
-                **_fastapi_limiter_init_additional_key,
-            )
-            cls._new_limiter = True
 
         cls.query_token_key = query_token_key or DEFAULT_QUERY_TOKEN_KEY
         cls.cookie_token_key = cookie_token_key or DEFAULT_COOKIE_TOKEN_KEY
@@ -109,34 +107,36 @@ def _add_exception_handlers(parent: ParentT):
         WebSocketException,
         WebSocketExceptionHandler,
     )
+
     parent.add_exception_handler(WebSocketException, WebSocketExceptionHandler)  # type:ignore
 
 
 def add_channel(
-        parent: ParentT,
-        *,
-        add_exception_handlers: bool = True,
-        # broadcaster
-        url: Optional[str] = None,
-        backend: Optional[BroadcastBackend] = None,
-        broadcast: Optional[Broadcast] = None,
-        # fastapi-limiter
-        limiter_url: Optional[str] = None,
-        redis=None,
-        prefix: str = "fastapi-channel",
-        identifier: Optional[Callable] = None,
-        http_callback: Optional[Callable] = None,
-        ws_callback: Callable = ws_default_callback,
-        # other config
-        permission_classes: Optional[
-            Sequence[Union[BasePermission, str, bool, Callable]]
-        ] = None,
-        throttle_classes: Optional[WebSocketRateLimiter] = None,
-        pagination_class: Any = None,
-        # authentication
-        query_token_key: Optional[str] = None,
-        cookie_token_key: Optional[str] = None,
+    parent: ParentT,
+    *,
+    add_exception_handlers: bool = True,
+    # broadcaster
+    url: Optional[str] = None,
+    backend: Optional[BroadcastBackend] = None,
+    broadcast: Optional[Broadcast] = None,
+    # limiter
+    limiter_url: Optional[str] = None,
+    storage: Any = None,
+    prefix: str = "fastapi-channel",
+    identifier: Callable = default_identifier,
+    http_callback: Callable = http_default_callback,
+    ws_callback: Callable = ws_default_callback,
+    # other config
+    permission_classes: Optional[
+        Sequence[Union[BasePermission, str, bool, Callable]]
+    ] = None,
+    throttle_classes: Optional[WebSocketRateLimiter] = None,
+    pagination_class: Any = None,
+    # authentication
+    query_token_key: Optional[str] = None,
+    cookie_token_key: Optional[str] = None,
 ) -> ParentT:
+    print('add_channel')
     # router = parent.router if isinstance(parent, FastAPI) else parent  # type: ignore[attr-defined]
     # debug = parent.debug if isinstance(parent, FastAPI) else False
     if not isinstance(parent, FastAPI):
@@ -157,7 +157,7 @@ def add_channel(
                 backend=backend,
                 broadcast=broadcast,
                 limiter_url=limiter_url,
-                redis=redis,
+                storage=storage,
                 prefix=prefix,
                 identifier=identifier,
                 http_callback=http_callback,
