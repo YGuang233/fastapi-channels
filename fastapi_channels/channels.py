@@ -194,7 +194,6 @@ class BaseChannel:
             else:
                 await run_in_threadpool(handler, websocket, exc)
 
-
     async def _handle(self, type: str, message: Optional[str] = None, **kwargs):
         if type == "lifespan.join.complete":
             return await self._connect(

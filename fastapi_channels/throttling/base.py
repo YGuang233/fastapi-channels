@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Any, Callable, Optional, cast
 from urllib.parse import urlparse
 
@@ -11,6 +12,7 @@ from fastapi_channels.throttling.ext._base import ThrottleBackend
 # slowapi支持多种后端，但只支持http
 # fastapi-limiter直支持redis作为后端，但只支持http和ws
 # slowapi还是不要想了，因为它是构建在中间件的:slowapi.middleware.py，但是它限流的过程还是可以抄一下的
+@lru_cache
 def _create_backend(url: str) -> ThrottleBackend:
     parsed_url = urlparse(url)
     if parsed_url.scheme == "memory":
@@ -82,7 +84,7 @@ class Throttle:
     @classmethod
     def ratelimiter(cls) -> Callable:
         print("ratelimiter")
-        print("ratelimiter:",cls.backend)
+        print("ratelimiter:", cls.backend)
 
         return cls.backend.ratelimiter
 

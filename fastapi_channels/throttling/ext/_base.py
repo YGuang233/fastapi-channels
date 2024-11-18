@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from typing import Annotated, Callable, Optional
 
 from fastapi import Request, Response
@@ -32,7 +33,7 @@ class WebSocketRateLimiter(RateLimiter):
         raise NotImplementedError
 
 
-class ThrottleBackend:
+class ThrottleBackend(ABC):
     def __init__(
         self,
         url: str,
@@ -42,23 +43,28 @@ class ThrottleBackend:
             False  # 自己注册或调用第三方库注册了，默认自己处理关闭逻辑,否则就自己新建
         )
 
+    @abstractmethod
     async def conn(self) -> None:
         raise NotImplementedError()
 
+    @abstractmethod
     async def reset(self):
         """
         resets the storage if it supports being reset
         """
         raise NotImplementedError()
 
+    @abstractmethod
     async def close(self) -> None:
         raise NotImplementedError()
 
     @property
+    @abstractmethod
     def ratelimiter(self) -> Callable:
-        print('ratelimiter backend')
+        print("ratelimiter backend")
         raise NotImplementedError
 
     @property
+    @abstractmethod
     def websocket_ratelimiter(self) -> Callable:
         raise NotImplementedError

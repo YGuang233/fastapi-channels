@@ -214,7 +214,7 @@ group_chatroom.add_event_handler("leave", leave_room)
 # 因为这里的channel是在实例化后的`connect`中被传入的`，因为我将一些lifespan的操作放到了channel,有着极大的耦合，后续将解决这个问题
 
 
-@limiter(seconds=3, times=1)
+@limiter(times=1, seconds=3)
 @group_chatroom.action("message")  # 消息发送解析和#装饰器异常
 async def send_message(websocket: WebSocket, channel: str, data: dict, **kwargs):
     await group_chatroom.broadcast_to_channel(channel, data)

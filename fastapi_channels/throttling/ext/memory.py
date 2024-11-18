@@ -1,7 +1,6 @@
 import asyncio
-from typing import Annotated, Callable, Optional
+from typing import Callable
 
-from pydantic import Field
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.websockets import WebSocket
@@ -9,34 +8,21 @@ from starlette.websockets import WebSocket
 from .. import Throttle
 from ._base import RateLimiter, ThrottleBackend
 
+_requests = {}
+_locks = {}
+
 
 class MemoryRateLimiter(RateLimiter):
-    def __init__(
-        self,
-        times: Annotated[int, Field(ge=0)] = 1,
-        milliseconds: Annotated[int, Field(ge=-1)] = 0,
-        seconds: Annotated[int, Field(ge=-1)] = 0,
-        minutes: Annotated[int, Field(ge=-1)] = 0,
-        hours: Annotated[int, Field(ge=-1)] = 0,
-        identifier: Optional[Callable] = None,
-        callback: Optional[Callable] = None,
-    ):
-        super().__init__(
-            times, milliseconds, seconds, minutes, hours, identifier, callback
-        )
-        self._requests = {}  # 这样子的_request、locks和下面的是分开的
-        self._locks = {}
-
     async def _reset(self, key):
         await asyncio.sleep(self.milliseconds / 1000)
-        self._requests[key] = 0
+        _requests[key] = 0
 
     async def _check(self, key):
-        if key not in self._requests:
-            self._requests[key] = 0
+        if key not in _requests:
+            _requests[key] = 0
             asyncio.create_task(self._reset(key))
-        self._requests[key] += 1
-        return self._requests[key] <= self.times
+        _requests[key] += 1
+        return _requests[key] <= self.times
 
     async def __call__(self, request: Request, response: Response):
         route_index = 0
@@ -54,10 +40,10 @@ class MemoryRateLimiter(RateLimiter):
         rate_key = await identifier(request)
         key = f"{Throttle.prefix},{rate_key}:{route_index}:{dep_index}"
 
-        if key not in self._locks:
-            self._locks[key] = asyncio.Lock()
+        if key not in _locks:
+            _locks[key] = asyncio.Lock()
 
-        async with self._locks[key]:
+        async with _locks[key]:
             is_allowed = await self._check(key)
 
         if not is_allowed:

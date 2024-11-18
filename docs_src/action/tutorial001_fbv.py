@@ -10,7 +10,7 @@ add_channel(app, add_exception_handlers=True, url="memory://", limiter_url="redi
 my_channel = Channel()
 
 
-@limiter(seconds=60, times=2)
+@limiter(times=2, seconds=60)
 @my_channel.action()
 async def message(websocket: WebSocket, channel: str, data: dict, **kwargs):
     return my_channel.broadcast_to_channel(channel=channel, message=data.get("message"))

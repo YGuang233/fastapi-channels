@@ -4,8 +4,7 @@ from typing import Any, AsyncIterator, Callable, Optional, Sequence, TypeVar, Un
 from broadcaster import Broadcast, BroadcastBackend
 from fastapi import APIRouter, FastAPI
 from fastapi_limiter import FastAPILimiter
-# from fastapi_limiter.depends import WebSocketRateLimiter
-from fastapi_channels.throttling.ext._base import WebSocketRateLimiter
+
 from fastapi_channels.permission import AllowAny, BasePermission
 from fastapi_channels.throttling import Throttle
 from fastapi_channels.throttling.callback import (
@@ -13,7 +12,9 @@ from fastapi_channels.throttling.callback import (
     http_default_callback,
     ws_default_callback,
 )
-from fastapi_channels.throttling.ext._base import ThrottleBackend
+
+# from fastapi_limiter.depends import WebSocketRateLimiter
+from fastapi_channels.throttling.ext._base import ThrottleBackend, WebSocketRateLimiter
 
 ParentT = TypeVar("ParentT", APIRouter, FastAPI)
 
@@ -30,7 +31,7 @@ class FastAPIChannel:
 
     broadcast: Optional[Broadcast] = None
     # throttle: Optional[Throttle] = None # 有没有必要被反复注册？ or not 有没有必要全局使用
-
+    limiter_url: Optional[str] = None
     _new_broadcast: bool = False
     _new_limiter: bool = False
     # authentication
@@ -79,7 +80,7 @@ class FastAPIChannel:
         cls.throttle_classes = throttle_classes or cls.throttle_classes
         cls.pagination_class = pagination_class or cls.pagination_class
         # cls.throttle = Throttle(url=limiter_url or url)
-        print(1)
+        cls.limiter_url = limiter_url
         await Throttle.init(
             url=limiter_url or url,
             backend=limiter_backend,
@@ -136,7 +137,7 @@ def add_channel(
     query_token_key: Optional[str] = None,
     cookie_token_key: Optional[str] = None,
 ) -> ParentT:
-    print('add_channel')
+    print("add_channel")
     # router = parent.router if isinstance(parent, FastAPI) else parent  # type: ignore[attr-defined]
     # debug = parent.debug if isinstance(parent, FastAPI) else False
     if not isinstance(parent, FastAPI):

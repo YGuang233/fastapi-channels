@@ -56,6 +56,7 @@ async def homepage(request: Request):
         context,
     )
 
+
 class ResponseModel(BaseModel):
     action: str
     user: str
@@ -86,7 +87,8 @@ class PersonalChatRoom(PersonChannel):
     async def encode_json(data: dict) -> str:
         return ResponseModel(**data).create()
 
-    @limiter(times=2, seconds=3000)  # 请求超额 但是不关闭websocket
+    @limiter(times=7, minutes=2)
+    @limiter(times=5, minutes=1)  # 请求超额 但是不关闭websocket
     @action("count")
     async def get_count(self, websocket: WebSocket, channel: str, data: dict, **kwargs):
         data.update({'message': await self.get_connection_count(channel)})
@@ -149,7 +151,12 @@ async def join_room(
         websocket: WebSocket,
         channel: str,
 ):
-    await group_chatroom.broadcast_to_personal(websocket, "Join successfully")
+    data = {
+        "user": "notice",
+        "message": "Join successfully",
+        "action": "join room"
+    }  # 因为修改列encode 如果不以对应的样式来处理会诱发pydantic的解析错误
+    await group_chatroom.broadcast_to_personal(websocket, data)
 
 
 async def leave_room(
@@ -159,7 +166,12 @@ async def leave_room(
     # await group_chatroom.broadcast_to_personal(websocket, 'leave successfully')
     # error: 👆如果通过action离开房间会输出这个，但是客户端直接关闭会诱发websocket没有进行连接
     # 所以这一步只能`broadcast_to_channel`或者后续处理,而不是`broadcast_to_personal`
-    await group_chatroom.broadcast_to_channel(channel, "leave successfully")
+    data = {
+        "user": "notice",
+        "message": "leave successfully",
+        "action": "leave room"
+    }
+    await group_chatroom.broadcast_to_channel(channel, data)
 
 
 # 以函数的形式注册加入房间和退出房间的操作是可以进行广播到频道中,像fastapi那样
@@ -181,7 +193,7 @@ group_chatroom.add_event_handler("leave", leave_room)
 # 因为这里的channel是在实例化后的`connect`中被传入的`，因为我将一些lifespan的操作放到了channel,有着极大的耦合，后续将解决这个问题
 
 
-@limiter(seconds=3, times=1)
+@limiter(times=1, seconds=3)
 @group_chatroom.action("message")  # 消息发送解析和#装饰器异常
 async def send_message(websocket: WebSocket, channel: str, data: dict, **kwargs):
     await group_chatroom.broadcast_to_channel(channel, data)

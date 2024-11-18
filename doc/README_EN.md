@@ -217,7 +217,7 @@ group_chatroom.add_event_handler("leave", leave_room)
 # I have placed some lifespan operations in the channel, which has a great coupling. 
 # I will solve this problem in the future
 
-@limiter(seconds=3, times=1)
+@limiter(times=1, seconds=3)
 @group_chatroom.action("message")  # 消息发送解析和#装饰器异常
 async def send_message(websocket: WebSocket, channel: str, data: dict, **kwargs):
     await group_chatroom.broadcast_to_channel(channel, data)

@@ -53,7 +53,7 @@ from fastapi_channels.throttling import limiter
 c = Channel()
 
 
-@limiter(seconds=60, times=2)
+@limiter(times=2, seconds=60)
 @c.action()
 async def message(websocket: WebSocket, channel: str, data: dict, **kwargs):
     await c.broadcast_to_channel(channel, 'hello')
