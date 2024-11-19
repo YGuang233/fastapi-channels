@@ -1,0 +1,10 @@
+plugins:
+  social:
+    cards_layout_options:
+      logo: ../zh/docs/img/icon-white.svg
+  typeset:
+markdown_extensions:
+  material.extensions.preview: # 在写入时预览
+    targets:
+      include:
+        - "*"

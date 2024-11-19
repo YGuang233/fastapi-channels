@@ -9,27 +9,26 @@
   </a>
 </p>
 
-# 介绍
+## 介绍
 [【中文文档】](./README.md) [【English Doc】](./doc/README_EN.md)
 
-&nbsp;&nbsp;本项目主要为FastAPI的WebSocket接口通讯提供快捷方便的处理和管理库。特色在于少量代码就能实现基本的聊天室的功能,和fastapi的编写风格。
+&nbsp;&nbsp;本项目主要为FastAPI的WebSocket接口通讯提供快捷方便的扩展库。特色在于少量代码就能实现基本的聊天室的功能,和fastapi的编写风格。
 <br>
 &nbsp;&nbsp;本项目又集成了优秀的第三方库如:[broadcaster](https://github.com/encode/broadcaster)、[fastapi-limiter](https://github.com/long2ice/fastapi-limiter)。在本项目均保留了自定义使用这些库的位置。
 <br>
 &nbsp;&nbsp;一般的，用户使用本库仅需考虑如何编写 `action` 来实现传输的目标,和对应的`action`访问的权限类即可
 
-# 案例演示
+## 案例演示
 
 <img src="https://github.com/user-attachments/assets/593ba9c9-4b23-46bf-8697-bee953372010" alt='WebSockets Demo'>
 
 ```python
 from typing import Type, Union, Any, Optional
 
-from fastapi import FastAPI, WebSocket
-from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.templating import Jinja2Templates
-
+from fastapi import FastAPI, WebSocket
+from pydantic import BaseModel
 from fastapi_channels import add_channel
 from fastapi_channels.channels import BaseChannel, Channel
 from fastapi_channels.decorators import action
@@ -37,7 +36,8 @@ from fastapi_channels.exceptions import PermissionDenied
 from fastapi_channels.permission import AllowAny
 from fastapi_channels.throttling import limiter
 from fastapi_channels.used import PersonChannel, GroupChannel
-from path import TemplatePath
+
+from path import TemplatePath  # 运行此案例，请将完整的example文件克隆
 
 templates = Jinja2Templates(TemplatePath)
 app = FastAPI()
@@ -88,7 +88,7 @@ class ResponseModel(BaseModel):
     errors: Optional[str] = None
     request_id: int = 1
 
-    def create(self):
+    def create(self) -> str:
         return self.model_dump_json(exclude_none=True)
 
 
@@ -114,26 +114,26 @@ class PersonalChatRoom(PersonChannel):
     @action("count")
     async def get_count(self, websocket: WebSocket, channel: str, data: dict, **kwargs):
         data.update({'message': await self.get_connection_count(channel)})
-        await self.broadcast_to_personal(websocket, await self.encode(data))
+        await self.broadcast_to_personal(websocket, data)
 
     @action("message")  # 广播消息
     async def send_message(
             self, websocket: WebSocket, channel: str, data: dict, **kwargs
     ):
-        await self.broadcast_to_channel(channel, await self.encode(data))
+        await self.broadcast_to_channel(channel, data)
 
     @action(deprecated=True)  # action被废弃不关闭websocket
     async def deprecated_action(
             self, websocket: WebSocket, channel: str, data: dict, **kwargs
     ):
         data.update({"message": "发送消息"})
-        await self.broadcast_to_personal(websocket, self.encode(data))
+        await self.broadcast_to_personal(websocket, data)
 
     @action("permission_denied", permission=False)  # 返回权限不足的错误响应
     async def permission_false(
             self, websocket: WebSocket, channel: str, data: dict, **kwargs
     ):
-        await self.broadcast_to_channel(channel, self.encode(data))
+        await self.broadcast_to_channel(channel, data)
 
     @action(permission=AllowAny)  # 抛出异常不但关闭websocket
     async def error(self, websocket: WebSocket, channel: str, data: dict, **kwargs):
@@ -145,7 +145,7 @@ class PersonalChatRoom(PersonChannel):
 
 
 person_chatroom, person_chatroom_name = add_global_channels_details(
-    PersonalChatRoom, name="chatroom_ws_person"
+    PersonalChatRoom(), name="chatroom_ws_person"
 )
 
 
@@ -205,10 +205,10 @@ group_chatroom.add_event_handler("leave", leave_room)
 # 因为这里的channel是在实例化后的`connect`中被传入的`，因为我将一些lifespan的操作放到了channel,有着极大的耦合，后续将解决这个问题
 
 
-@limiter(seconds=3, times=1)
+@limiter(times=1, seconds=3)
 @group_chatroom.action("message")  # 消息发送解析和#装饰器异常
 async def send_message(websocket: WebSocket, channel: str, data: dict, **kwargs):
-    await group_chatroom.broadcast_to_channel(channel, await group_chatroom.encode(data))
+    await group_chatroom.broadcast_to_channel(channel, data)
 
 
 @group_chatroom.action("error_true")  # 触发异常，主机关闭连接
@@ -238,13 +238,18 @@ if __name__ == "__main__":
 ```
 前端的HTML模板[可在此处获得](https://github.com/YGuang233/fastapi-channels/blob/master/example/templates/index.html)，改编自[Pieter Noordhuis的PUB/SUB演示](https://gist.github.com/pietern/348262)和[Tom Christie的Broadcaster演示](https://github.com/encode/broadcaster/blob/master/example/templates/index.html)
 
-# 目标和实现
+运行此案例请将整个example文件进行clone
+
+<a href="https://fc.bxzdyg.com/zh/tutorial/">教程 - 用户指南</a> 中有包含更多特性的更完整示例。
+
+## 目标和实现
 
 - [x] 权限认证
     - [x] 基础全局、频道权限认证
     - [x] 访问`action`的权限验证
     - [ ] 基础的用户验证的方案
 - [x] 自定义异常和全局捕获,并且抛出异常可控连接状态
+- [ ] 额外的日志记录
 - [ ] 分页器
 - [x] 限流器
     - [x] fastapi-limiter
@@ -269,9 +274,13 @@ if __name__ == "__main__":
 - [ ] 完善的doc
 - [ ] fastapi编写风格化(依赖项注入...)
 
-# 安装
+## 安装
 
 那么接下来就由你来使用fastapi-channels了
 ```shell
 pip install fastapi-channels
 ```
+
+## 许可协议
+
+该项目遵循 MIT 许可协议。

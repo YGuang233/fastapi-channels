@@ -1,0 +1,160 @@
+INHERIT: ../zh/mkdocs.maybe-insiders.yml
+site_name: FastAP-Channels
+site_description: A FastAPI based websocket library - FastAPI-Channels
+site_url: https://fc.bxzdyg.cn
+site_author: BXZDYG
+theme:
+  name: material
+  font:
+    text: Merriweather Sans
+    code: Red Hat Mono
+  palette:
+  - media: (prefers-color-scheme)
+    toggle:
+      icon: material/lightbulb-auto
+      name: Switch to light mode
+  - media: '(prefers-color-scheme: light)'
+    scheme: default
+    primary: teal
+    accent: amber
+    toggle:
+      icon: material/lightbulb
+      name: Switch to dark mode
+  - media: '(prefers-color-scheme: dark)'
+    scheme: slate
+    primary: teal
+    accent: amber
+    toggle:
+      icon: material/lightbulb-outline
+      name: Switch to system preference
+  features:
+  - content.code.annotate
+  - content.code.copy
+  - content.footnote.tooltips
+  - content.tooltips
+  - navigation.footer
+  - navigation.indexes
+  - navigation.instant
+  - navigation.instant.prefetch
+  - navigation.instant.progress
+  - navigation.path
+  - navigation.tabs
+  - navigation.top
+  - navigation.tracking
+  - navigation.tabs.sticky
+  - search.highlight
+  - search.share
+  - search.suggest
+  - toc.follow
+  - announce.dismiss
+  icon:
+    repo: fontawesome/brands/github-alt
+  logo: img/icon-white.svg
+  favicon: img/favicon.png
+  language: zh
+  custom_dir: ../zh/overrides
+repo_name: fastapi-channels
+repo_url: https://github.com/YGuang233/fastapi-channels
+markdown_extensions:
+- abbr
+- attr_list
+- pymdownx.emoji:
+    emoji_index: !!python/name:material.extensions.emoji.twemoji ''
+    emoji_generator: !!python/name:material.extensions.emoji.to_svg ''
+- pymdownx.highlight:
+    line_spans: __span
+- pymdownx.tasklist:
+    custom_checkbox: true
+- pymdownx.inlinehilite
+- pymdownx.snippets
+- pymdownx.superfences:
+    custom_fences:
+    - name: mermaid
+      class: mermaid
+      format: !!python/name:pymdownx.superfences.fence_code_format ''
+- pymdownx.tabbed:
+    alternate_style: true
+- admonition
+- tables
+- pymdownx.details
+- mdx_include: null
+- pymdownx.critic
+- pymdownx.caret
+- pymdownx.keys
+- pymdownx.mark
+- pymdownx.tilde
+plugins:
+- git-revision-date-localized:
+    type: date
+    enable_creation_date: true
+- git-committers:
+    repository: YGuang233/fastapi-channels
+    branch: docs
+- search
+nav:
+- 主页:
+  - index.md
+- 特点: features.md
+- 学习:
+  - learn/index.md
+  - 教程-用户指南:
+    - tutorial/index.md
+    - tutorial/setup.md
+    - tutorial/classes.md
+    - tutorial/action.md
+    - tutorial/limiter.md
+    - tutorial/permission.md
+    - tutorial/exception.md
+  - 高级-用户指南:
+    - advanced/index.md
+    - advanced/lifespan.md
+- 参考:
+  - reference/index.md
+- 资源:
+  - resources/index.md
+  - resources/help-fastapi-channels.md
+  - contributing.md
+  - resources/management-tasks.md
+  - resources/commit-and-pr-help.md
+  - resources/docs-dev.md
+- 关于:
+  - about/index.md
+  - about/history-design-future.md
+- 发行说明: release-notes.md
+extra:
+  analytics:
+    provider: google
+    property: G-RMREXXKJEQ
+    feedback:
+      title: 这个页面对你是否有帮助
+      ratings:
+      - icon: material/emoticon-happy-outline
+        name: 这个页面很有帮助
+        data: 1
+        note: 感谢你的反馈!
+      - icon: material/emoticon-sad-outline
+        name: 此页面有待改进
+        data: 0
+        note: 感谢您的反馈！使用我们的<a href="..." target="_blank" rel="noopener">反馈表</a>.帮助我们改进此页面
+  social:
+  - icon: fontawesome/brands/github-alt
+    link: https://github.com/YGuang233
+  - icon: fontawesome/solid/globe
+    link: https://blog.bxzdyg.cn
+  alternate:
+  - link: /
+    name: zh - 简体中文
+  - link: /en/
+    name: en - English
+  - link: /zh-hant/
+    name: zh-hant - 繁體中文
+extra_css:
+- css/termynal.css
+- css/custom.css
+extra_javascript:
+- js/termynal.js
+- js/custom.js
+- js/fluff.js
+copyright: Copyright &copy; 2024 BXZDYG
+hooks:
+- ../../scripts/mkdocs_hooks.py

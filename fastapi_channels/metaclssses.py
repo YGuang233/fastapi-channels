@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 class ActionConsumerMeta(type):
     """
     记录操作方法的元类
@@ -14,5 +13,8 @@ class ActionConsumerMeta(type):
             if hasattr(attr_value, "action"):
                 action_name, action_desc = attr_value.action
                 perm_call, perm_desc = attr_value.permission
-                cls._actions[action_name] = (attr_name, perm_call)  # 返回action对应的函数名和对应的权限验证
+                cls._actions[action_name] = (
+                    attr_name,
+                    perm_call,
+                )  # 返回action对应的函数名和对应的权限验证
         return cls

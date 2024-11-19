@@ -82,11 +82,24 @@
         var container = $('div#msgs');
         ws.onmessage = function (evt) {
           var obj = JSON.parse(evt.data);
+          if (typeof obj == 'string'){
+              // 不知为什么响应`"{\"action\":\"message\",\"user\":\"Mike\",\"message\":\"asdasd\"}"`
+              // 这里却是`"\"{\\\"action\\\":\\\"message\\\",\\\"user\\\":\\\"Mike\\\",\\\"message\\\":\\\"asdasd\\\"}\""`
+              // 被二次json.dumps()了
+              var _obj
+              try {
+                  _obj = obj
+                  obj = JSON.parse(obj);
+              } catch (error) {
+                  console.error("Error parsing JSON:", error);
+                  obj=_obj
+              }
+          }
           if (typeof obj != 'object') return;
           if ('status' in obj) {
             if (obj['status'] === 'bad') {
               console.error(obj['errors']);
-              if (typeof obj['errors'] === 'string') {
+              if (typeof obj['errors'] == 'string') {
                 $('#error').html('<a id="close-btn">x</a>' + obj['errors']);
                 $('#modal-overlay').show();
               }
@@ -117,6 +130,7 @@
               msg.find('.user').text(obj['user']);
               msg.find('.message').text(': ' + obj['message']);
             }
+              console.log('这里')
           } else if (action == 'control') {
             msg.find('.user').text(obj['user']);
             msg.find('.message').text(obj['message']);

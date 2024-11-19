@@ -1,0 +1,8 @@
+# Define this here and not in the main mkdocs.yml file because that one is auto
+# updated and written, and the script would remove the env var
+# # 在这里定义这个，而不是在主mkdocs.yml文件中，因为那个是自动的
+# 更新和编写，脚本将删除env var.翻译是这个意思，目前不太明白
+INHERIT: !ENV [INSIDERS_FILE, '../zh/mkdocs.no-insiders.yml']
+markdown_extensions:
+  pymdownx.highlight:
+    linenums: !ENV [LINENUMS, false]

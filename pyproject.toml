@@ -1,0 +1,211 @@
+# 我想要打包成什么？
+# 小体量的东西
+# project-root/
+#│
+#├── fastapi_channels/
+#│   ├── __init__.py
+#│   └── ... (other modules)
+#│
+#├── pyproject.toml
+#├── README.md
+#├── PKG-INFO(build生成的)
+#└── LICENSE (没有gitignore)
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[project]
+name = "fastapi-channels"
+dynamic = ["version"]
+description = "This project provides a simple setup for creating WebSocket communication channels using FastAPI."
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+    { name = "BXZDYG", email = "banxingzhedeyangguang@gmail.com" },
+]
+keywords = ["fastapi", "broadcaster", "pydantic", "fastapi-channels", "limits"]
+classifiers = [
+    "Operating System :: OS Independent",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: System Administrators",
+    "Typing :: Typed",
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Framework :: AsyncIO",
+    "Framework :: FastAPI",
+    "Framework :: Pydantic",
+    "Framework :: Pydantic :: 1",
+    "Framework :: Broadcaster",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Topic :: Software Development",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "fastapi>=0.110.0",
+    "broadcaster>=0.3.1",
+    "limits>=3.12.0",
+    "pydantic>=1.7.4,!=1.8,!=1.8.1,!=2.0.0,!=2.0.1,!=2.1.0,<3.0.0",
+    "typing-extensions>=4.8.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/YGuang233/fastapi-channels"
+Documentation = "https://fc.bxzdyg.cn/"
+Repository = "https://github.com/YGuang233/fastapi-channels"
+Issues = "https://github.com/YGuang233/fastapi-channels/issues"
+Changelog = "https:/fc.bxzdyg.cn/release-notes/"
+
+[project.optional-dependencies]
+
+standard = [
+    "fastapi[standard] >=0.110.0",
+]
+all = [
+    "fastapi[all] >=0.110.0"
+]
+redis = ["redis", "fastapi_limiter<=0.1.6"]
+postgres = ["asyncpg"]
+kafka = ["aiokafka"]
+test = ["pytest", "pytest-asyncio"]
+
+#[project.scripts]
+#fastapi = "fastapi.cli:main"
+
+[tool.pdm]
+version = { source = "file", path = "fastapi_channels/__init__.py" }
+distribution = true
+
+[tool.pdm.resolution]
+allow-prereleases = true
+
+[tool.pdm.build]
+# 根目录在哪
+package-dir = "fastapi-channels"
+# 要包含哪些包
+#packages = ["fastapi_channels"]
+includes = [
+    "fastapi_channels/",
+]
+excludes = [
+    # '*_d.py', # 这个居然不可以全局匹配，这样写只能在当前目录下匹配
+    # "fastapi_channels/*_d.py",
+    # "fastapi_channels/**/*_d.py",
+    "fastapi_channels/utils",
+    "./**/*_d.py",
+    ".gitignore",
+    "tests",
+    "./**/0.0.1b0",
+    # "./**/0.0.1b1",
+]
+
+# TODO: no check start
+[tool.mypy]
+strict = true
+
+#[[tool.mypy.overrides]]
+#module = "fastapi.concurrency"
+#warn_unused_ignores = false
+#ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_missing_imports = true
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "docs_src.*"
+disallow_incomplete_defs = false
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+
+[tool.pytest.ini_options]
+addopts = [
+    "--strict-config",
+    "--strict-markers",
+    "--ignore=docs_src",
+]
+xfail_strict = true
+junit_family = "xunit2"
+filterwarnings = [
+    "error",
+    'ignore:starlette.middleware.wsgi is deprecated and will be removed in a future release\..*:DeprecationWarning:starlette',
+    # For passlib
+    "ignore:'crypt' is deprecated and slated for removal in Python 3.13:DeprecationWarning",
+    # see https://trio.readthedocs.io/en/stable/history.html#trio-0-22-0-2022-09-28
+    "ignore:You seem to already have a custom.*:RuntimeWarning:trio",
+    # TODO: remove after upgrading SQLAlchemy to a version that includes the following changes
+    # https://github.com/sqlalchemy/sqlalchemy/commit/59521abcc0676e936b31a523bd968fc157fef0c2
+    'ignore:datetime\.datetime\.utcfromtimestamp\(\) is deprecated and scheduled for removal in a future version\..*:DeprecationWarning:sqlalchemy',
+    # Trio 24.1.0 raises a warning from attrs
+    # Ref: https://github.com/python-trio/trio/pull/3054
+    # Remove once there's a new version of Trio
+    'ignore:The `hash` argument is deprecated*:DeprecationWarning:trio',
+]
+
+[tool.coverage.run]
+parallel = true
+data_file = "coverage/.coverage"
+source = [
+    "docs_src",
+    "tests",
+    "fastapi_channels"
+]
+context = '${CONTEXT}'
+dynamic_context = "test_function"
+omit = [
+    "docs_src/response_model/tutorial003_04.py",
+    "docs_src/response_model/tutorial003_04_py310.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+sort = "-Cover"
+
+[tool.coverage.html]
+show_contexts = true
+
+# TODO: no check end
+
+[tool.ruff.lint]
+select = [
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # pyflakes
+    "I", # isort
+    "B", # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501", # line too long, handled by black
+    "B008", # do not perform function calls in argument defaults
+    "C901", # too complex
+    "W191", # indentation contains tabs
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.ruff.lint.isort]
+known-third-party = ["fastapi", "pydantic", "starlette", "boradcaster", "limits", "fastapi-limiter"]
+
+[tool.ruff.lint.pyupgrade]
+# Preserve types, even if a file imports `from __future__ import annotations`.
+keep-runtime-typing = true
+
+[tool.inline-snapshot]
+# default-flags=["fix"]
+# default-flags=["create"]
