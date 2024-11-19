@@ -9,16 +9,16 @@
   </a>
 </p>
 
-# Introduction
+## Introduction
 [【中文文档】](../README.md) [【English Doc】](./README_EN.md)
 
-&nbsp;&nbsp;This project mainly provides a fast and convenient processing and management library for Web Socket interface communication of Fast API. The feature lies in the ability to implement basic chat room functions with a small amount of code, and the writing style of FastAPI.
+&nbsp;&nbsp;This project mainly provides a fast and convenient extension library for the Web Socket interface communication of Fast API. The feature lies in the ability to implement basic chat room functions with a small amount of code, and the writing style of FastAPI.
 <br>
 &nbsp;&nbsp;This project has also integrated excellent third-party libraries such as [broadcaster](https://github.com/encode/broadcaster) and [FastAPI limiter](https://github.com/long2ice/fastapi-limiter), and has reserved custom locations for using these libraries in this project.
 <br>
 &nbsp;&nbsp;Generally, users only need to consider how to write 'actions' to achieve the transmission goals and the corresponding permission classes for accessing' actions' when using this library
 
-# Examples
+## Examples
 
 <img src="https://github.com/user-attachments/assets/593ba9c9-4b23-46bf-8697-bee953372010" alt='WebSockets Demo'>
 
@@ -30,7 +30,6 @@ from starlette.requests import Request
 from starlette.templating import Jinja2Templates
 from fastapi import FastAPI, WebSocket
 from pydantic import BaseModel
-
 from fastapi_channels import add_channel
 from fastapi_channels.channels import BaseChannel, Channel
 from fastapi_channels.decorators import action
@@ -38,7 +37,8 @@ from fastapi_channels.exceptions import PermissionDenied
 from fastapi_channels.permission import AllowAny
 from fastapi_channels.throttling import limiter
 from fastapi_channels.used import PersonChannel, GroupChannel
-from path import TemplatePath
+
+from path import TemplatePath  # To run this case, please clone the complete example file
 
 templates = Jinja2Templates(TemplatePath)
 app = FastAPI()
@@ -48,7 +48,7 @@ global_channels_details = {}
 
 
 def add_global_channels_details(
-    channel: Union[Type[BaseChannel], BaseChannel], name: str
+        channel: Union[Type[BaseChannel], BaseChannel], name: str
 ) -> tuple[BaseChannel, str]:
     # Check whether the input is a class or an instance,
     # but return instance objects without repeating instantiation
@@ -81,6 +81,7 @@ async def homepage(request: Request):
         context,
     )
 
+
 class ResponseModel(BaseModel):
     action: str
     user: str
@@ -89,8 +90,9 @@ class ResponseModel(BaseModel):
     errors: Optional[str] = None
     request_id: int = 1
 
-    def create(self):
+    def create(self) -> str:
         return self.model_dump_json(exclude_none=True)
+
 
 class BaselChatRoom(BaseChannel): ...
 
@@ -106,40 +108,39 @@ async def base_chatroom_ws(websocket: WebSocket):
 
 
 class PersonalChatRoom(PersonChannel):
-  
+
     @staticmethod
     async def encode_json(data: dict) -> str:
         return ResponseModel(**data).create()
-    
+
     @limiter(times=2, seconds=3000)  # Request exceeded, but it will not close websocket
-    @action("count")  
+    @action("count")
     async def get_count(self, websocket: WebSocket, channel: str, data: dict, **kwargs):
         data.update({'message': await self.get_connection_count(channel)})
-        await self.broadcast_to_personal(websocket, await self.encode(data))
-
+        await self.broadcast_to_personal(websocket, data)
 
     @action("message")  # broadcast message
     async def send_message(
-        self, websocket: WebSocket, channel: str, data: dict, **kwargs
+            self, websocket: WebSocket, channel: str, data: dict, **kwargs
     ):
-        await self.broadcast_to_channel(channel, await self.encode(data))
+        await self.broadcast_to_channel(channel, data)
 
     @action(
         deprecated=True
     )  # The action is discarded and returns a discarded message. It will not close the websocket
     async def deprecated_action(
-        self, websocket: WebSocket, channel: str, data: dict, **kwargs
+            self, websocket: WebSocket, channel: str, data: dict, **kwargs
     ):
         data.update({"message": "send message"})
-        await self.broadcast_to_personal(websocket, self.encode(data))
+        await self.broadcast_to_personal(websocket, data)
 
     @action(
         "permission_denied", permission=False
     )  # return error response with insufficient permissions
     async def permission_false(
-        self, websocket: WebSocket, channel: str, data: dict, **kwargs
+            self, websocket: WebSocket, channel: str, data: dict, **kwargs
     ):
-        await self.broadcast_to_channel(channel, self.encode(data))
+        await self.broadcast_to_channel(channel, data)
 
     @action(
         permission=AllowAny
@@ -153,7 +154,7 @@ class PersonalChatRoom(PersonChannel):
 
 
 person_chatroom, person_chatroom_name = add_global_channels_details(
-    PersonalChatRoom, name="chatroom_ws_person"
+    PersonalChatRoom(), name="chatroom_ws_person"
 )
 
 
@@ -167,6 +168,7 @@ class GroupChatRoom(GroupChannel):
     async def encode_json(data: dict) -> str:
         return ResponseModel(**data).create()
 
+
 group_chatroom = GroupChatRoom()
 group_chatroom_name = "chatroom_ws_group"
 
@@ -177,15 +179,15 @@ async def group_chatroom_ws(websocket: WebSocket):
 
 
 async def join_room(
-    websocket: WebSocket,
-    channel: str,
+        websocket: WebSocket,
+        channel: str,
 ):
     await group_chatroom.broadcast_to_personal(websocket, "Join successfully")
 
 
 async def leave_room(
-    websocket: WebSocket,
-    channel: str,
+        websocket: WebSocket,
+        channel: str,
 ):
     # error: 👆 If you leave the room through an `action`, it will output this,
     # but if the client closes it directly, it will trigger the websocket to not connect,
@@ -212,18 +214,18 @@ group_chatroom.add_event_handler("leave", leave_room)
 #     await person_chatroom.broadcast_to_channel(channel, 'leave successfully')
 # person_chatroom = PersonalChatRoom(lifespan=lifespan)
 # Because the channel here is passed in the 'connect' after instantiation, 
-# and because I placed some lifespan operations in the channel, it greatly couples.
+# I have placed some lifespan operations in the channel, which has a great coupling. 
 # I will solve this problem in the future
 
-@limiter(seconds=3, times=1)
+@limiter(times=1, seconds=3)
 @group_chatroom.action("message")  # 消息发送解析和#装饰器异常
 async def send_message(websocket: WebSocket, channel: str, data: dict, **kwargs):
-    await group_chatroom.broadcast_to_channel(channel, await group_chatroom.encode(data))
+    await group_chatroom.broadcast_to_channel(channel, data)
 
 
 @group_chatroom.action("error_true")  # Trigger exception, host close connection
 async def send_error_and_close(
-    websocket: WebSocket, channel: str, data: dict, **kwargs
+        websocket: WebSocket, channel: str, data: dict, **kwargs
 ):
     raise PermissionDenied(close=True)
 
@@ -248,13 +250,19 @@ if __name__ == "__main__":
 ```
 The HTML template for the front end [is available here](https://github.com/YGuang233/fastapi-channels/blob/master/example/templates/index.html), and is adapted from [Pieter Noordhuis's PUB/SUB demo](https://gist.github.com/pietern/348262) and [Tom Christie's Broadcaster demo](https://github.com/encode/broadcaster/blob/master/example/templates/index.html).
 
-# Goal and Achieve
+Please clone the entire example file to run this case
+
+<a href="https://fc.bxzdyg.com/zh/tutorial/">Tutorial - User Guide</a> There are more complete examples with more features included.
+
+
+## Goal and Achieve
 
 - [x] Permission authentication
     - [x] Basic global and channel permission authentication
     - [x] Permission verification for accessing 'action'
     - [ ] Basic user authentication scheme
 - [x] Customize exceptions and global capture, and throw exceptions to control connection status
+- [ ] Additional logging
 - [ ] Paginator
 - [x] Current limiter
     - [x] fastapi-limiter
@@ -279,7 +287,7 @@ The HTML template for the front end [is available here](https://github.com/YGuan
 - [ ] Complete doc
 - [ ] FastAPI writing stylization (dependency injection...)
 
-# Installation
+## Installation
 
 So now it's up to you to use fastapi-channels
 ```shell

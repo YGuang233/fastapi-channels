@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from typing import Any
 
 from fastapi import WebSocket
@@ -48,9 +47,7 @@ class AND:
         self.op1 = op1
         self.op2 = op2
 
-    def has_permission(
-            self, websocket: WebSocket, action: str, **kwargs
-    ):
+    def has_permission(self, websocket: WebSocket, action: str, **kwargs):
         return self.op1.has_permission(
             websocket, action, **kwargs
         ) and self.op2.has_permission(websocket, action, **kwargs)
@@ -61,9 +58,7 @@ class OR:
         self.op1 = op1
         self.op2 = op2
 
-    def has_permission(
-            self, websocket: WebSocket, action: str, **kwargs
-    ):
+    def has_permission(self, websocket: WebSocket, action: str, **kwargs):
         return self.op1.has_permission(
             websocket, action, **kwargs
         ) or self.op2.has_permission(websocket, action, **kwargs)
@@ -73,9 +68,7 @@ class NOT:
     def __init__(self, op1: "BasePermission"):
         self.op1 = op1
 
-    def has_permission(
-            self, websocket: WebSocket, action: str, **kwargs
-    ):
+    def has_permission(self, websocket: WebSocket, action: str, **kwargs):
         return not self.op1.has_permission(websocket, action, **kwargs)
 
 
@@ -83,6 +76,7 @@ class BasePermissionMetaclass(OperationHolderMixin, type):
     """
     元类以支持逻辑组合
     """
+
     pass
 
 
@@ -96,17 +90,13 @@ class BasePermission(metaclass=BasePermissionMetaclass):
         async has_permission ( websocket, action, **kwargs)
     """
 
-    async def has_permission(
-            self, websocket: WebSocket, action: str, **kwargs
-    ) -> bool:
+    async def has_permission(self, websocket: WebSocket, action: str, **kwargs) -> bool:
         """
         Called on every websocket message sent before the corresponding action handler is called.
         """
         pass
 
-    async def can_connect(
-            self, websocket: WebSocket, message: Any = None
-    ) -> bool:
+    async def can_connect(self, websocket: WebSocket, message: Any = None) -> bool:
         """
         Called during connection to validate if a given client can establish a websocket connection.
 
@@ -118,7 +108,5 @@ class BasePermission(metaclass=BasePermissionMetaclass):
 class AllowAny(BasePermission):
     """Allow any permission class"""
 
-    async def has_permission(
-            self, websocket: WebSocket, action: str, **kwargs
-    ) -> bool:
+    async def has_permission(self, websocket: WebSocket, action: str, **kwargs) -> bool:
         return True

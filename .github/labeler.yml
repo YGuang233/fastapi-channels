@@ -1,0 +1,38 @@
+docs:
+  - all:
+    - changed-files:
+      - any-glob-to-any-file:
+        - docs/zh/docs/**
+        - docs_src/**
+      - all-globs-to-all-files:
+        - '!fastapi_channels/**'
+        # - '!pyproject.toml'
+        # - '!docs/zh/data/sponsors.yml'
+        - '!docs/zh/overrides/main.html'
+
+lang-all:
+  - all:
+    - changed-files:
+      - any-glob-to-any-file:
+        - docs/*/docs/**
+      - all-globs-to-all-files:
+        - '!docs/zh/docs/**'
+        - '!fastapi_channels/**'
+        # - '!pyproject.toml'
+
+internal:
+  - all:
+    - changed-files:
+      - any-glob-to-any-file:
+        - .github/**
+        - scripts/**
+        - .gitignore
+        - .pre-commit-config.yaml
+        - pdm_build.py
+        - requirements*.txt
+        - docs/zh/overrides/main.html
+        # - docs/zh/data/sponsors.yml
+      - all-globs-to-all-files:
+        - '!docs/*/docs/**'
+        - '!fastapi_channels/**'
+        # - '!pyproject.toml'

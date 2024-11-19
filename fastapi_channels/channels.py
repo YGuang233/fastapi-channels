@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import asyncio
 import json
 import traceback
@@ -11,117 +10,36 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Tuple,
     Union,
-    Tuple, cast
+    cast,
 )
-from urllib.parse import urlparse
 
 import anyio
-from broadcaster import Broadcast, BroadcastBackend
-from fastapi_limiter import FastAPILimiter, ws_default_callback
+from fastapi.params import Depends
+from fastapi.types import DecoratedCallable
 from fastapi_limiter.depends import WebSocketRateLimiter
-from redis.asyncio import Redis
+
+# from fastapi_channels.throttling.ext._base import WebSocketRateLimiter
+# 这个应该是WebSocketRateLimiter类型的指向，这个文件内不应该使用WebSocketRateLimiter的操作
 from starlette._exception_handler import _lookup_exception_handler
 from starlette._utils import is_async_callable
 from starlette.concurrency import run_in_threadpool
 from starlette.websockets import WebSocket
 from typing_extensions import Annotated, Doc, Literal  # noqa
 
+from fastapi_channels.api import FastAPIChannel
 from fastapi_channels.exceptions import (
+    ActionIsDeprecated,
+    ActionNotExist,
+    PermissionDenied,
     WebSocketException,
     WebSocketExceptionHandler,
-    PermissionDenied,
-    ActionNotExist,
-    ActionIsDeprecated)
+)
 from fastapi_channels.lifespan import ChannelLifespanEvent
 from fastapi_channels.metaclssses import ActionConsumerMeta
-from fastapi_channels.permission import BasePermission, AllowAny
-from fastapi_channels.types import Lifespan, DecoratedCallable
-
-DEFAULT_QUERY_TOKEN_KEY = 'token'
-DEFAULT_COOKIE_TOKEN_KEY = 'token'
-# DEFAULT_PERMISSION_CLASSES = ("fastapi_channels.permissions.AllowAny",)
-DEFAULT_PERMISSION_CLASSES = (AllowAny,)
-
-
-class FastAPIChannel:
-    """
-    为fastapi-channels全局注册类变量，在使用Channel的时候部分变量没有指定将会使用这个
-    """
-    broadcast: Optional[Broadcast] = None
-    _new_broadcast: bool = False
-    _new_limiter: bool = False
-    # authentication
-    query_token_key: Optional[str] = None
-    cookie_token_key: Optional[str] = None
-    permission_classes: Any = DEFAULT_PERMISSION_CLASSES
-    # other
-    # pagination_class: Any = None
-    throttle_classes: Optional[WebSocketRateLimiter] = None
-
-    @classmethod
-    async def init(
-            cls,
-            url: Optional[str] = None,
-            backend: Optional[BroadcastBackend] = None,
-            broadcast: Optional[Broadcast] = None,
-            # fastapi-limiter
-            limiter_url: Optional[str] = None,
-            redis=None,
-            prefix: str = "fastapi-channel",
-            identifier: Optional[Callable] = None,
-            http_callback: Optional[Callable] = None,
-            ws_callback: Callable = ws_default_callback,
-            # TODO: 上面可能要删去
-            # permission 权限
-            permission_classes: Optional[Sequence[Union[BasePermission, str]]] = None,
-            # throttling 限流器
-            throttle_classes: Optional[WebSocketRateLimiter] = None,
-            # pagination 分页器
-            # pagination_class: Optional[Sequence] = None,
-            # authentication
-            query_token_key: Optional[str] = None,
-            cookie_token_key: Optional[str] = None
-    ):
-        assert url is not None or limiter_url is not None or redis is not None, \
-            "Either 'url' or 'limiter_url' or 'redis' must be provided."
-        if url or limiter_url:
-            url = url or limiter_url
-            limiter_url = limiter_url or url
-            parsed_url = urlparse(limiter_url)
-            if parsed_url.scheme not in ("redis", "rediss"):
-                raise ValueError('A valid Redis URL is required')
-        if broadcast:
-            cls.broadcast = broadcast
-        else:
-            cls.broadcast = Broadcast(url=url, backend=backend)
-            cls._new_broadcast = True
-        cls.permission_classes = permission_classes or cls.permission_classes
-        cls.throttle_classes = throttle_classes or cls.throttle_classes
-        # cls.pagination_class = pagination_class or cls.pagination_class
-        if not FastAPILimiter.redis:
-            limiter_redis = redis or await Redis.from_url(limiter_url)
-            _fastapi_limiter_init_additional_key = {}
-            if identifier: _fastapi_limiter_init_additional_key['identifier'] = identifier
-            if http_callback: _fastapi_limiter_init_additional_key['http_callback'] = http_callback
-            await FastAPILimiter.init(
-                redis=limiter_redis,
-                prefix=prefix,
-                ws_callback=ws_callback,
-                **_fastapi_limiter_init_additional_key
-            )
-            cls._new_limiter = True
-
-        cls.query_token_key = query_token_key or DEFAULT_QUERY_TOKEN_KEY
-        cls.cookie_token_key = cookie_token_key or DEFAULT_COOKIE_TOKEN_KEY
-        await cls.broadcast.connect()
-
-    @classmethod
-    async def close(cls):
-        if cls._new_broadcast:
-            await cls.broadcast.disconnect()
-        if cls._new_limiter:
-            await FastAPILimiter.close()
+from fastapi_channels.permission import BasePermission
+from fastapi_channels.types import Lifespan
 
 
 class BaseChannel:
@@ -135,9 +53,10 @@ class BaseChannel:
         6. 错误返回
         7. 聊天记录的保存(*可选)(后续实现)
     """
+
     # # # - base room settings    - # # #
     # - base room connect settings    - #
-    channel: str = 'default_channel'
+    channel: str = "default_channel"
 
     # - base room Can be instantiated settings    - #
     # room
@@ -148,32 +67,36 @@ class BaseChannel:
     on_leave: Optional[Sequence[Callable[[], Any]]] = None
     lifespan: Optional[Lifespan] = None
     # limiter
-    history_key: str = f'history:{channel}'
+    history_key: str = f"history:{channel}"
     max_history: Optional[int] = None
     limiter_depends: Optional[List] = None
     # recent message
     timedelta: Optional[int] = None
     # permission
-    permission_classes: Union[List, Tuple, Callable, BasePermission, None] = FastAPIChannel.permission_classes
+    permission_classes: Union[List, Tuple, BasePermission, Callable, bool, None] = (
+        FastAPIChannel.permission_classes
+    )
     throttle_classes: Optional[WebSocketRateLimiter] = FastAPIChannel.throttle_classes
 
     def __init__(
-            self,
-            *,
-            channel: Optional[str] = None,
-            max_connection: Optional[int] = None,
-            history_key: Optional[str] = None,
-            max_history: Optional[int] = None,
-            limiter_depends: Optional[List] = None,
-            permission_classes: Optional[List] = None,
-            throttle_classes: Optional[WebSocketRateLimiter] = None,
-            on_join: Optional[Sequence[Callable[[], Any]]] = None,
-            on_leave: Optional[Sequence[Callable[[], Any]]] = None,
-            lifespan: Optional[Lifespan] = None,
+        self,
+        *,
+        channel: Optional[str] = None,
+        max_connection: Optional[int] = None,
+        history_key: Optional[str] = None,
+        max_history: Optional[int] = None,
+        limiter_depends: Optional[List] = None,
+        permission_classes: Union[
+            List, Tuple, BasePermission, Callable, bool, None
+        ] = None,
+        throttle_classes: Optional[WebSocketRateLimiter] = None,
+        on_join: Optional[Sequence[Callable[[], Any]]] = None,
+        on_leave: Optional[Sequence[Callable[[], Any]]] = None,
+        lifespan: Optional[Lifespan] = None,
     ):
         self._exc_handlers = {}
         assert lifespan is None or (
-                on_join is None and on_leave is None
+            on_join is None and on_leave is None
         ), "Use either 'lifespan' or 'on_join'/'on_leave', not both."
         self.permission_classes = permission_classes or self.permission_classes
         self.limiter_depends = limiter_depends or self.limiter_depends
@@ -187,15 +110,21 @@ class BaseChannel:
             else:
                 self.permission_classes = [self.permission_classes]
         self.event_manage = ChannelLifespanEvent(
-            on_join=on_join or self.on_join, on_leave=on_leave or self.on_leave,
-            lifespan=lifespan or self.lifespan)
+            on_join=on_join or self.on_join,
+            on_leave=on_leave or self.on_leave,
+            lifespan=lifespan or self.lifespan,
+        )
         self.throttle_classes = throttle_classes or self.throttle_classes
 
-    async def connect(self, websocket: WebSocket, channel: Optional[str] = None) -> None:
+    async def connect(
+        self, websocket: WebSocket, channel: Optional[str] = None
+    ) -> None:
         channel = channel or self.channel
         await websocket.accept()
-        self._exc_handlers, status_handlers = websocket.scope.get('starlette.exception_handlers')
-        if self.max_connection is not None:
+        self._exc_handlers, status_handlers = websocket.scope.get(
+            "starlette.exception_handlers"
+        )
+        if self.max_connection is not None and self.max_connection > 0:
             await self.check_connection_count(channel)
         await self.check_permission_classes(websocket)
         await self._lifespan(websocket, channel)
@@ -206,8 +135,7 @@ class BaseChannel:
     async def close(self, websocket: WebSocket) -> None:
         await websocket.close()
 
-    @staticmethod
-    async def broadcast_to_personal(websocket: WebSocket, message: Any) -> None:
+    async def broadcast_to_personal(self, websocket: WebSocket, message: Any) -> None:
         """
         @example:
             ```
@@ -224,10 +152,9 @@ class BaseChannel:
                 await channel.broadcast_to_personal(websocket, 'Hello, Channel!')
             ```
         """
-        await websocket.send_text(message)
+        await websocket.send_text(await self.encode(message))
 
-    @staticmethod
-    async def broadcast_to_channel(channel: str, message: Any) -> None:
+    async def broadcast_to_channel(self, channel: str, message: Any) -> None:
         """
         @example:
             ```
@@ -244,7 +171,9 @@ class BaseChannel:
                 await channel.broadcast_to_channel(channel, 'Hello, Channel!')
             ```
         """
-        await FastAPIChannel.broadcast.publish(channel=channel, message=message)
+        await FastAPIChannel.broadcast.publish(
+            channel=channel, message=await self.encode(message)
+        )
 
     @staticmethod
     async def send_error(error_msg: Any, close: bool = False) -> None:
@@ -266,13 +195,15 @@ class BaseChannel:
                 await run_in_threadpool(handler, websocket, exc)
 
     async def _handle(self, type: str, message: Optional[str] = None, **kwargs):
-        if type == 'lifespan.join.complete':
-            return await self._connect(websocket=kwargs.get('websocket'), channel=kwargs.get('channel'))
-        if type == 'lifespan.join.failed':
+        if type == "lifespan.join.complete":
+            return await self._connect(
+                websocket=kwargs.get("websocket"), channel=kwargs.get("channel")
+            )
+        if type == "lifespan.join.failed":
             pass
-        if type == 'lifespan.leave.complete':
+        if type == "lifespan.leave.complete":
             pass
-        if type == 'lifespan.leave.failed':
+        if type == "lifespan.leave.failed":
             pass
 
     async def _lifespan(self, websocket: WebSocket, channel: str) -> None:
@@ -282,8 +213,8 @@ class BaseChannel:
         """
         joined = False  # 是否执行join函数
         kwargs = {
-            'websocket': websocket,
-            'channel': channel,
+            "websocket": websocket,
+            "channel": channel,
         }
         # 默认如果是中间部分错误的话，结束不会被运行，除非你捕获了lifespan中的异常并使用finally的语句指定代码
         try:
@@ -293,9 +224,13 @@ class BaseChannel:
         except BaseException:
             exc_text = traceback.format_exc()
             if joined:
-                await self._handle(type="lifespan.leave.failed", message=exc_text, **kwargs)
+                await self._handle(
+                    type="lifespan.leave.failed", message=exc_text, **kwargs
+                )
             else:
-                await self._handle(type="lifespan.join.failed", message=exc_text, **kwargs)
+                await self._handle(
+                    type="lifespan.join.failed", message=exc_text, **kwargs
+                )
             raise
         else:
             await self._handle(type="lifespan.leave.complete", **kwargs)
@@ -306,7 +241,9 @@ class BaseChannel:
             async def run_chatroom_ws_receiver() -> None:
                 try:
                     await self._receiver(websocket=websocket, channel=channel)
-                except RuntimeError:  # 客户端直接断开连接诱发的异常(websocket.accept() first)
+                except (
+                    RuntimeError
+                ):  # 客户端直接断开连接诱发的异常(websocket.accept() first)
                     pass
                 task_group.cancel_scope.cancel()
 
@@ -316,12 +253,20 @@ class BaseChannel:
     async def _receiver(self, websocket: WebSocket, channel: str):
         """接收信息"""
         async for message in websocket.iter_text():
-            # Channel重写此处
-            async def _task():
-                if self.throttle_classes is not None: await self.throttle_classes(websocket, channel)
-                await FastAPIChannel.broadcast.publish(channel=channel, message=message)
 
-            await self._handle_exception(_task(), websocket, channel)
+            async def _task(_message=message):
+                if self.throttle_classes is not None:
+                    await self.throttle_classes(websocket, channel)
+                await self.receiver(websocket, channel, _message)
+
+            await self._handle_exception(
+                task=_task(),
+                websocket=websocket,
+                channel=channel,
+            )
+
+    async def receiver(self, websocket: WebSocket, channel: str, message: Any):
+        await self.broadcast_to_channel(channel, message)
 
     async def _sender(self, websocket: WebSocket, channel: str):
         """发送信息"""
@@ -341,32 +286,59 @@ class BaseChannel:
         """
         if action:
             # BaseChannel不对action做处理，你应该使用Channel类
-            warnings.warn("BaseChannel class does not handle actions,You should use the Channel class.")
+            warnings.warn(
+                "BaseChannel class does not handle actions,You should use the Channel class.",
+                category=Warning,
+                stacklevel=1,
+            )
         return self.permission_classes
+
+    # async def get_authenticators(self):
+    #     """
+    #     Instantiates and returns the list of authenticators that this view can use.
+    #     雾：不知道这个现在怎么改用
+    #     """
+    #     return [auth() for auth in self.authentication_classes]
+    # async def get_permissions(self):
+    #     """
+    #     Instantiates and returns the list of permissions that this view requires.
+    #     """
+    #     return [permission() for permission in self.permission_classes]
+    # async def get_throttles(self):
+    #     """
+    #     Instantiates and returns the list of throttles that this view uses.
+    #     雾：不知道这个现在怎么改用
+    #     """
+    #     return [throttle() for throttle in self.throttle_classes]
 
     async def check_permission_classes(self, websocket: WebSocket) -> None:
         """只检查permission_classes的权限认证"""
-        for permission in self.permission_classes:
-            if await self._check_permission(
-                    websocket=websocket,
-                    action=None,
-                    permission=permission
-            ) is False:
+        for permission in await self.get_permissions(action=None):
+            if (
+                await self._check_permission(
+                    websocket=websocket, action=None, permission=permission
+                )
+                is False
+            ):
                 raise PermissionDenied(close=True)
 
     @staticmethod
-    async def _check_permission(websocket: WebSocket, action: Optional[str], permission: Any, **kwargs) -> bool:
+    async def _check_permission(
+        websocket: WebSocket, action: Optional[str], permission: Any, **kwargs
+    ) -> bool:
         if permission is None:
             return True
         elif isinstance(permission, type) and issubclass(permission, BasePermission):
-            return await permission().has_permission(websocket=websocket, action=action, **kwargs)
+            return await permission().has_permission(
+                websocket=websocket, action=action, **kwargs
+            )
         elif callable(permission):
             if asyncio.iscoroutinefunction(permission):
                 return await permission(websocket, action, permission, **kwargs)
             return permission(websocket, action, permission, **kwargs)
         return False
 
-    async def get_connection_count(self, channel: str) -> int:  # noqa
+    async def get_connection_count(self, channel: str) -> int:
         """
         获取当前房间连接的人数
         """
@@ -380,8 +352,8 @@ class BaseChannel:
         if self.max_connection is None or current_conn_nums < self.max_connection:
             return current_conn_nums
         await self.send_error(
-            error_msg='The current number of channel connections is greater than the maximum number of connections',
-            close=True
+            error_msg="The current number of channel connections is greater than the maximum number of connections",
+            close=True,
         )
 
     @staticmethod
@@ -398,10 +370,14 @@ class BaseChannel:
     async def decode(self, message: Any) -> dict:
         return await self.decode_json(message)
 
-    def on_event(self, event_type: str) -> DecoratedCallable:  # 装饰器
+    def on_event(self, event_type: str) -> DecoratedCallable:
         return self.event_manage.on_event(event_type)
 
-    def add_event_handler(self, event_type: str, func: Callable, ) -> None:  # pragma: no cover
+    def add_event_handler(
+        self,
+        event_type: str,
+        func: Callable,
+    ) -> None:  # pragma: no cover
         self.event_manage.add_event_handler(event_type, func)
 
 
@@ -412,89 +388,117 @@ class Channel(BaseChannel, metaclass=ActionConsumerMeta):
         2. 通过limiter装饰器(需要先注册action装饰器),可对单个类型的action进行限流
     """
 
-    def __init__(self, *, channel: Optional[str] = None, max_connection: Optional[int] = None,
-                 history_key: Optional[str] = None, max_history: Optional[int] = None,
-                 limiter_depends: Optional[List] = None, permission_classes: Optional[List] = None,
-                 throttle_classes: Optional[WebSocketRateLimiter] = None,
-                 on_join: Optional[Sequence[Callable[[], Any]]] = None,
-                 on_leave: Optional[Sequence[Callable[[], Any]]] = None,
-                 lifespan: Optional[Lifespan] = None):
+    def __init__(
+        self,
+        *,
+        channel: Optional[str] = None,
+        max_connection: Optional[int] = None,
+        history_key: Optional[str] = None,
+        max_history: Optional[int] = None,
+        limiter_depends: Optional[List] = None,
+        permission_classes: Optional[List] = None,
+        throttle_classes: Optional[WebSocketRateLimiter] = None,
+        on_join: Optional[Sequence[Callable[[], Any]]] = None,
+        on_leave: Optional[Sequence[Callable[[], Any]]] = None,
+        lifespan: Optional[Lifespan] = None,
+    ):
         super().__init__(
-            channel=channel, max_connection=max_connection, history_key=history_key,
-            max_history=max_history, limiter_depends=limiter_depends,
-            permission_classes=permission_classes, throttle_classes=throttle_classes, on_join=on_join,
-            on_leave=on_leave, lifespan=lifespan)
+            channel=channel,
+            max_connection=max_connection,
+            history_key=history_key,
+            max_history=max_history,
+            limiter_depends=limiter_depends,
+            permission_classes=permission_classes,
+            throttle_classes=throttle_classes,
+            on_join=on_join,
+            on_leave=on_leave,
+            lifespan=lifespan,
+        )
 
-        if not hasattr(self, '_actions'):
+        if not hasattr(self, "_actions"):
             self._actions: Dict[str, tuple] = {}
 
-    async def _receiver(self, websocket: WebSocket, channel: str):
-        """接收信息"""
-        async for message in websocket.iter_text():
-            # Channel重写此处
-            async def _task():
-                if self.throttle_classes is not None: await self.throttle_classes(websocket, channel)
-                # data: dict = json.loads(message)
-                data: dict = await self.decode(message)
-                await self.handle_action(
-                    action=data.get('action', None),
-                    request_id=int(data.get('request_id', 1)),
-                    data=data,
-                    websocket=websocket,
-                    channel=channel
-                ),
-
-            await self._handle_exception(
-                _task(),
+    async def receiver(self, websocket: WebSocket, channel: str, message: Any):
+        data: dict = await self.decode(message)
+        return (
+            await self.handle_action(
+                action=data.get("action", None),
+                request_id=int(data.get("request_id", 1)),
+                data=data,
                 websocket=websocket,
-                channel=channel
-            )
+                channel=channel,
+            ),
+        )
 
     @property
     def actions(self) -> List[str]:
         return list(self._actions.keys())
 
     async def handle_action(
-            self, websocket: WebSocket, channel: str,
-            action: str, request_id: int, data: dict, **kwargs
+        self,
+        websocket: WebSocket,
+        channel: str,
+        action: str,
+        request_id: int,
+        data: dict,
+        **kwargs,
     ) -> None:
         if action not in self.actions:
             raise ActionNotExist(request_id=request_id, close=False)
         await self.check_permissions(websocket=websocket, action=action, **kwargs)
         action_func_or_str, _ = self._actions[action]
         if isinstance(action_func_or_str, str):
-            await getattr(self, action_func_or_str)(websocket=websocket, channel=channel, data=data)
+            await getattr(self, action_func_or_str)(
+                websocket=websocket, channel=channel, data=data
+            )
         else:
-            await action_func_or_str.call(websocket=websocket, channel=channel, data=data)
+            await action_func_or_str.call(
+                websocket=websocket, channel=channel, data=data
+            )
 
     def action(
-            self,
-            name: Optional[str] = None,
-            permission: Optional[Any] = None,
-            detached: bool = False,
-            deprecated: bool = False,
+        self,
+        name: Optional[str] = None,
+        *,
+        permission: Optional[Any] = None,
+        detached: bool = False,
+        deprecated: bool = False,
+        dependencies: Annotated[
+            Optional[Sequence[Depends]],
+            Doc(
+                """
+                    A list of dependencies (using `Depends()`) to be used for this Action.
+
+                    Read more about it in the
+                    [FastAPI docs for Action](https://fc.bxzdyg.cn/learn/action).
+                """
+            ),
+        ] = None,  # TODO: 以后改成我自己的文档地址，这里先不动
     ) -> DecoratedCallable:
         if detached:
             raise NotImplementedError(
-                'Sorry, the detached function has not been implemented yet and is currently only used for placeholder')
+                "Sorry, the detached function has not been implemented yet and is currently only used for placeholder"
+            )
 
         def decorator(func):
             _name = name if name else func.__name__
             func.action = (_name, func.__doc__)
-            perm_desc = 'Allow Anyone'
+            perm_desc = "Allow Anyone"
             if isinstance(permission, type) and issubclass(permission, BasePermission):
                 perm_desc = permission.__doc__ or permission.has_permission.__doc__
             elif callable(permission):
                 perm_desc = permission.__doc__
             elif isinstance(permission, bool):
                 if not permission:
-                    perm_desc = 'Not Allow Anyone'
+                    perm_desc = "Not Allow Anyone"
             func.permission = (permission, perm_desc)
 
             @wraps(func)
             async def wrapper(*args, **kwargs):
                 if deprecated:
-                    raise ActionIsDeprecated(error_msg=f"The function '{_name}' is deprecated.")
+                    raise ActionIsDeprecated(
+                        error_msg=f"The function '{_name}' is deprecated."
+                    )
                 return await func(*args, **kwargs)
 
             wrapper.action = func.action
@@ -514,7 +518,7 @@ class Channel(BaseChannel, metaclass=ActionConsumerMeta):
         Returns:
 
         """
-        _, perm_call = self._actions.get(action, None)
+        _, perm_call = self._actions.get(action, (None, None))
         if perm_call is not None:
             if not isinstance(perm_call, List):
                 if isinstance(perm_call, Tuple):
@@ -524,10 +528,15 @@ class Channel(BaseChannel, metaclass=ActionConsumerMeta):
             return self.permission_classes + perm_call
         return self.permission_classes
 
-    async def check_permissions(self, websocket: WebSocket, action: str = None, **kwargs) -> None:
+    async def check_permissions(
+        self, websocket: WebSocket, action: str = None, **kwargs
+    ) -> None:
         """检查permission_classes的权限认证和对应action的权限认证"""
         for permission in await self.get_permissions(action=action):
-            if await self._check_permission(
+            if (
+                await self._check_permission(
                     websocket=websocket, action=action, permission=permission, **kwargs
-            ) is False:
+                )
+                is False
+            ):
                 raise PermissionDenied(close=False)
