@@ -5,8 +5,7 @@ from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter, WebSocketRateLimiter
 from packaging import version as pkg_version
 
-from fastapi_channels.throttling import Throttle
-from fastapi_channels.throttling.ext._base import ThrottleBackend
+from ..base import Throttle, ThrottleBackend
 
 _current_version = version("fastapi-limiter")
 _required_version = "0.1.6"

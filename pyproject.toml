@@ -23,7 +23,7 @@ requires-python = ">=3.8"
 authors = [
     { name = "BXZDYG", email = "banxingzhedeyangguang@gmail.com" },
 ]
-keywords = ["fastapi", "broadcaster", "pydantic", 'fastapi-channels']
+keywords = ["fastapi", "broadcaster", "pydantic", "fastapi-channels", "limits"]
 classifiers = [
     "Operating System :: OS Independent",
     "Intended Audience :: Information Technology",
@@ -56,7 +56,7 @@ classifiers = [
 dependencies = [
     "fastapi>=0.110.0",
     "broadcaster>=0.3.1",
-    "fastapi_limiter<=0.1.6",
+    "limits>=3.12.0",
     "pydantic>=1.7.4,!=1.8,!=1.8.1,!=2.0.0,!=2.0.1,!=2.1.0,<3.0.0",
     "typing-extensions>=4.8.0"
 ]
@@ -76,7 +76,7 @@ standard = [
 all = [
     "fastapi[all] >=0.110.0"
 ]
-redis = ["redis"]
+redis = ["redis", "fastapi_limiter<=0.1.6"]
 postgres = ["asyncpg"]
 kafka = ["aiokafka"]
 test = ["pytest", "pytest-asyncio"]
@@ -200,7 +200,7 @@ ignore = [
 "__init__.py" = ["F401"]
 
 [tool.ruff.lint.isort]
-known-third-party = ["fastapi", "pydantic", "starlette", 'boradcaster', 'fastapi-limiter']
+known-third-party = ["fastapi", "pydantic", "starlette", "boradcaster", "limits", "fastapi-limiter"]
 
 [tool.ruff.lint.pyupgrade]
 # Preserve types, even if a file imports `from __future__ import annotations`.

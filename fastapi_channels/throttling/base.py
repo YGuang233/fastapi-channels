@@ -1,8 +1,105 @@
+from abc import ABC, abstractmethod
 from functools import lru_cache
-from typing import Any, Callable, Optional, cast
+from typing import Annotated, Any, Callable, Optional, cast
 from urllib.parse import urlparse
 
-from fastapi_channels.throttling.ext._base import ThrottleBackend
+from fastapi import Request, Response
+from limits import RateLimitItemPerSecond
+from pydantic import Field
+from starlette.websockets import WebSocket
+
+
+class RateLimiter:
+    def __init__(
+        self,
+        times: Annotated[int, Field(ge=0)] = 1,
+        milliseconds: Annotated[int, Field(ge=-1)] = 0,
+        seconds: Annotated[int, Field(ge=-1)] = 0,
+        minutes: Annotated[int, Field(ge=-1)] = 0,
+        hours: Annotated[int, Field(ge=-1)] = 0,
+        identifier: Optional[Callable] = None,
+        callback: Optional[Callable] = None,
+    ) -> None:
+        self.times = times
+        self.milliseconds = (
+            milliseconds + 1000 * seconds + 60000 * minutes + 3600000 * hours
+        )
+        self.identifier = identifier
+        self.callback = callback
+
+    async def _check(self, key) -> int:
+        raise NotImplementedError()
+
+    async def __call__(self, request: Request, response: Response):
+        route_index = 0
+        dep_index = 0
+        for i, route in enumerate(request.app.routes):
+            if route.path == request.scope["path"] and request.method in route.methods:
+                route_index = i
+                for j, dependency in enumerate(route.dependencies):
+                    if self is dependency.dependency:
+                        dep_index = j
+                        break
+        identifier = self.identifier or Throttle.identifier
+        callback = self.callback or Throttle.http_callback
+        rate_key = await identifier(request)
+        key = f"{Throttle.prefix}:{rate_key}:{route_index}:{dep_index}"
+
+        pexpire = await self._check(key)
+        if pexpire != 0:
+            return await callback(request, response, pexpire)
+
+
+class WebSocketRateLimiter(RateLimiter):
+    async def __call__(self, ws: WebSocket, context_key="") -> None:
+        identifier = self.identifier or Throttle.identifier
+        rate_key = await identifier(ws)
+        key = f"{Throttle.prefix}:ws:{rate_key}:{context_key}"
+
+        pexpire = await self._check(key)
+        if pexpire != 0:
+            callback = self.callback or Throttle.ws_callback
+            return await callback(ws, pexpire)
+
+
+class ThrottleBackend(ABC):
+    def __init__(
+        self,
+        url: str,
+    ) -> None:
+        self.url = url
+        self._new_backend = (
+            False  # 自己注册或调用第三方库注册了，默认自己处理关闭逻辑,否则就自己新建
+        )
+
+    @abstractmethod
+    async def conn(self) -> None:
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def reset(self) -> int:
+        """
+        resets the storage if it supports being reset
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def close(self) -> None:
+        """
+        close the storage conn if it supports being close
+        """
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def ratelimiter(self) -> RateLimiter:
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def websocket_ratelimiter(self) -> WebSocketRateLimiter:
+        raise NotImplementedError()
+
 
 # 决定使用那种限流器
 # 决定使用哪个后端
@@ -25,6 +122,11 @@ def _create_backend(url: str) -> ThrottleBackend:
         return RedisThrottleBackend(url=url)
     else:
         raise ValueError(f"Unsupported storage type: {parsed_url.scheme}")
+
+
+class _RateLimitItemPerSecond(RateLimitItemPerSecond):
+    def key_for(self, *identifiers: str) -> str:
+        return identifiers[0]
 
 
 class Throttle:
@@ -83,12 +185,9 @@ class Throttle:
 
     @classmethod
     def ratelimiter(cls) -> Callable:
-        print("ratelimiter")
         print("ratelimiter:", cls.backend)
-
         return cls.backend.ratelimiter
 
     @classmethod
     def websocket_ratelimiter(cls) -> Callable:
-        print("websocket_ratelimiter")
         return cls.backend.websocket_ratelimiter

@@ -42,5 +42,6 @@ search:
 | ⬆️    | 升级依赖          | internal          | ⬆️ ⬆ Upgrade docs development dependency on to >=0.0.12 to fix conflicts.               |
 | 👷    | 工作流、机器人相关操作   | internal          | 👷Switch from Codecov to Smokeshow plus pytest-cov to pure coverage for internal tests. |
 | 👥    | 修改更新内部开发人员文档  | internal          | 👥 Update Dev People                                                                    |
+| ✨     | 修改更新内部开发人员文档  | feature           | ✨ Introduce new features                                                                |
 
 > [更多gitmoji](https://gitmoji.dev/) 请直接使用表情符号

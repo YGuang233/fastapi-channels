@@ -1,69 +1,57 @@
-import asyncio
-from typing import Callable
+import time
+from math import ceil
+from typing import Annotated, Callable, Optional
 
-from starlette.requests import Request
-from starlette.responses import Response
-from starlette.websockets import WebSocket
+from limits.aio.storage import MemoryStorage
+from limits.aio.strategies import FixedWindowRateLimiter
+from pydantic import Field
 
-from .. import Throttle
-from ._base import RateLimiter, ThrottleBackend
+from ..base import (
+    RateLimiter,
+    ThrottleBackend,
+    WebSocketRateLimiter,
+    _RateLimitItemPerSecond,
+)
 
-_requests = {}
-_locks = {}
+_memory_storage = MemoryStorage()
+_fixed_window = FixedWindowRateLimiter(_memory_storage)
 
 
 class MemoryRateLimiter(RateLimiter):
-    async def _reset(self, key):
-        await asyncio.sleep(self.milliseconds / 1000)
-        _requests[key] = 0
+    def __init__(
+        self,
+        times: Annotated[int, Field(ge=0)] = 1,
+        milliseconds: Annotated[int, Field(ge=-1)] = 0,
+        seconds: Annotated[int, Field(ge=-1)] = 0,
+        minutes: Annotated[int, Field(ge=-1)] = 0,
+        hours: Annotated[int, Field(ge=-1)] = 0,
+        identifier: Optional[Callable] = None,
+        callback: Optional[Callable] = None,
+    ) -> None:
+        super().__init__(
+            times, milliseconds, seconds, minutes, hours, identifier, callback
+        )
+        self.rate_limit = _RateLimitItemPerSecond(
+            amount=self.times, multiples=ceil(self.milliseconds / 1000)
+        )
 
-    async def _check(self, key):
-        if key not in _requests:
-            _requests[key] = 0
-            asyncio.create_task(self._reset(key))
-        _requests[key] += 1
-        return _requests[key] <= self.times
-
-    async def __call__(self, request: Request, response: Response):
-        route_index = 0
-        dep_index = 0
-        for i, route in enumerate(request.app.routes):
-            if route.path == request.scope["path"] and request.method in route.methods:
-                route_index = i
-                for j, dependency in enumerate(route.dependencies):
-                    if self is dependency.dependency:
-                        dep_index = j
-                        break
-        # moved here because constructor run before app startup
-        identifier = self.identifier or Throttle.identifier
-        callback = self.callback or Throttle.http_callback
-        rate_key = await identifier(request)
-        key = f"{Throttle.prefix},{rate_key}:{route_index}:{dep_index}"
-
-        if key not in _locks:
-            _locks[key] = asyncio.Lock()
-
-        async with _locks[key]:
-            is_allowed = await self._check(key)
-
-        if not is_allowed:
-            return await callback(request, response)
+    async def _check(self, key) -> int:
+        if not await _fixed_window.hit(self.rate_limit, key):
+            expiry_time = await _memory_storage.get_expiry(key)
+            current_time = time.time()
+            return int(expiry_time - current_time) * 1000
+        return 0
 
 
-class MemoryWebSocketRateLimiter(MemoryRateLimiter):
-    async def __call__(self, ws: WebSocket, context_key="") -> None:
-        identifier = self.identifier or Throttle.identifier
-        rate_key = await identifier(ws)
-        key = f"{Throttle.prefix}:ws:{rate_key}:{context_key}"
-        pexpire = await self._check(key)
-        callback = self.callback or Throttle.ws_callback
-        if pexpire != 0:
-            return await callback(ws, pexpire)
+class MemoryWebSocketRateLimiter(MemoryRateLimiter, WebSocketRateLimiter): ...
 
 
 class MemoryThrottleBackend(ThrottleBackend):
     async def conn(self) -> None:
         pass
+
+    async def reset(self):
+        return await _memory_storage.reset()
 
     async def close(self) -> None:
         pass

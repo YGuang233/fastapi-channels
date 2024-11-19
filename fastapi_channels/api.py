@@ -6,15 +6,18 @@ from fastapi import APIRouter, FastAPI
 from fastapi_limiter import FastAPILimiter
 
 from fastapi_channels.permission import AllowAny, BasePermission
-from fastapi_channels.throttling import Throttle
+
+# from fastapi_limiter.depends import WebSocketRateLimiter
+from fastapi_channels.throttling.base import (
+    Throttle,
+    ThrottleBackend,
+    WebSocketRateLimiter,
+)
 from fastapi_channels.throttling.callback import (
     default_identifier,
     http_default_callback,
     ws_default_callback,
 )
-
-# from fastapi_limiter.depends import WebSocketRateLimiter
-from fastapi_channels.throttling.ext._base import ThrottleBackend, WebSocketRateLimiter
 
 ParentT = TypeVar("ParentT", APIRouter, FastAPI)
 

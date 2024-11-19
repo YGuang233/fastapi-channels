@@ -1,9 +1,11 @@
 from functools import wraps
 from typing import Callable, Optional
 
+from .base import Throttle
 from .callback import ws_action_default_callback
 
-# 用于缓存 WebSocketRateLimiter 实例
+__all__ = ["limiter", Throttle]
+# 用于缓存 WebSocketRateLimiter 实例 # TODO:之后实现了depends的功能就把这个limiter去掉
 _limiter_cache = {}
 
 
@@ -46,7 +48,6 @@ def limiter(
                 ws_callback,
             )
 
-            # 检查并更新_rate_limits列表
             try:
                 index = func._rate_limits.index(cache_key) + 1
             except ValueError:

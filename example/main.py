@@ -18,7 +18,8 @@ templates = Jinja2Templates(TemplatePath)
 app = FastAPI()
 # add_channel(app, url="redis://localhost:6379", limiter_url="redis://localhost:6379")
 add_channel(app, add_exception_handlers=True, url="redis://:r1e3d1i4s520@192.168.129.128:6379/14",
-            limiter_url="redis://:r1e3d1i4s520@192.168.129.128:6379/14")
+            # limiter_url="redis://:r1e3d1i4s520@192.168.129.128:6379/14")
+            limiter_url="memory://")
 
 global_channels_details = {}
 
@@ -87,8 +88,8 @@ class PersonalChatRoom(PersonChannel):
     async def encode_json(data: dict) -> str:
         return ResponseModel(**data).create()
 
-    @limiter(times=7, minutes=2)
     @limiter(times=5, minutes=1)  # 请求超额 但是不关闭websocket
+    @limiter(times=7, minutes=2)  # 存在冲突，如果多次请求存在一个范围比较大和一个比较小的时间那么将会小的超时了，再请求还是会影响大的 # 一个解决办法就是把时间跨度短的放在上面，跨度大的放下面.这样被小的计数了，也不会影响大的
     @action("count")
     async def get_count(self, websocket: WebSocket, channel: str, data: dict, **kwargs):
         data.update({'message': await self.get_connection_count(channel)})
