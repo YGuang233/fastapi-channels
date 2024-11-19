@@ -19,7 +19,7 @@ FastAPI-Channels 是基于 FastAPI 开发的扩展库，用于 WebSocket 接口�
 第三方库集成：
 
 - **Broadcaster**：利用 Broadcaster 库实现高效的实时消息传递，支持多种后端。
-- **FastAPI-Limiter**：通过 FastAPI-Limiter 实现速率限制，控制 API 使用。
+- **FastAPI-Limiter**、**limits**： 实现速率限制，控制 WebSocket接口和action的使用频率。
 
 ### 简洁
 
