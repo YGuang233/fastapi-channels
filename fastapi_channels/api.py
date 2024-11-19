@@ -6,8 +6,6 @@ from fastapi import APIRouter, FastAPI
 from fastapi_limiter import FastAPILimiter
 
 from fastapi_channels.permission import AllowAny, BasePermission
-
-# from fastapi_limiter.depends import WebSocketRateLimiter
 from fastapi_channels.throttling.base import (
     Throttle,
     ThrottleBackend,
@@ -23,7 +21,6 @@ ParentT = TypeVar("ParentT", APIRouter, FastAPI)
 
 DEFAULT_QUERY_TOKEN_KEY = "token"
 DEFAULT_COOKIE_TOKEN_KEY = "token"
-# DEFAULT_PERMISSION_CLASSES = ("fastapi_channels.permissions.AllowAny",)
 DEFAULT_PERMISSION_CLASSES = (AllowAny,)
 
 
@@ -57,7 +54,7 @@ class FastAPIChannel:
         # limiter
         limiter_url: Optional[str] = None,
         limiter_backend: Optional[ThrottleBackend] = None,
-        storage: Any = None,  # 如果自行连接了redis 请把redis对象放在这
+        storage: Any = None,  # 如果自行连接了redis 请把redis对象放在这 或者其他用于限流缓存的连接对象
         prefix: str = "fastapi-channel",
         identifier: Callable = default_identifier,
         http_callback: Callable = http_default_callback,
@@ -140,13 +137,8 @@ def add_channel(
     query_token_key: Optional[str] = None,
     cookie_token_key: Optional[str] = None,
 ) -> ParentT:
-    print("add_channel")
-    # router = parent.router if isinstance(parent, FastAPI) else parent  # type: ignore[attr-defined]
-    # debug = parent.debug if isinstance(parent, FastAPI) else False
     if not isinstance(parent, FastAPI):
         raise ValueError("add_channel needs to be applied on FastAPI instances")
-    # TODO: 按照fastapi-pagination的设想，这里区分FastAPi还是APIRouter目的在于更新 API 文档 之后我可能会专门实现能够支持BaseChannel和Channel的OpeAPI文档
-    # TODO: 但是目前只是实现FastAPIChannel的全局注册
     router = parent.router  # type: ignore[attr-defined]
     debug = parent.debug  # type: ignore[attr-defined]
     _original_lifespan_context = router.lifespan_context

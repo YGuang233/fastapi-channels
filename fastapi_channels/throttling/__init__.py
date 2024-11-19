@@ -17,6 +17,7 @@ def limiter(
     hours: int = 0,
     identifier: Optional[Callable] = None,
     ws_callback: Optional[Callable] = None,
+    use_cache: bool = False,
 ):
     if ws_callback is None:
         ws_callback = ws_action_default_callback
@@ -55,8 +56,21 @@ def limiter(
                 index = len(func._rate_limits)
 
             # 缓存限流器
-            if cache_key not in _limiter_cache:
-                _limiter_cache[cache_key] = WebSocketRateLimiter(
+            if use_cache:
+                if cache_key not in _limiter_cache:
+                    _limiter_cache[cache_key] = WebSocketRateLimiter(
+                        times=times,
+                        milliseconds=milliseconds,
+                        seconds=seconds,
+                        minutes=minutes,
+                        hours=hours,
+                        callback=ws_callback,
+                        identifier=identifier,
+                    )
+
+                ratelimit = _limiter_cache[cache_key]
+            else:
+                ratelimit = WebSocketRateLimiter(
                     times=times,
                     milliseconds=milliseconds,
                     seconds=seconds,
@@ -65,8 +79,6 @@ def limiter(
                     callback=ws_callback,
                     identifier=identifier,
                 )
-
-            ratelimit = _limiter_cache[cache_key]
             _channel = kwargs.get("channel", None)
             _context_key = [_channel, action_name, str(index)]
             context_key = ":".join(_context_key)

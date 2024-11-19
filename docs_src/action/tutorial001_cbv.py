@@ -6,7 +6,12 @@ from fastapi_channels.decorators import action
 from fastapi_channels.throttling import limiter
 
 app = FastAPI()
-add_channel(app, add_exception_handlers=True, url="memory://", limiter_url="redis://localhost:6379")
+add_channel(
+    app,
+    add_exception_handlers=True,
+    url="memory://",
+    limiter_url="redis://localhost:6379",
+)
 
 
 class MyChannel(Channel):

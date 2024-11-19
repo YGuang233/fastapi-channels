@@ -160,7 +160,6 @@ class Throttle:
         cls.ws_callback = ws_callback
         cls.kwargs = kwargs
         cls.backend = backend or _create_backend(cast(str, url))
-        print("init:", cls.backend)
         await cls.backend.conn()
 
     @classmethod
