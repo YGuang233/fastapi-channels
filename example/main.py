@@ -1,9 +1,10 @@
-from typing import Type, Union, Any, Optional
+from typing import Any, Optional, Type, Union
 
+from fastapi import FastAPI, WebSocket
+from path import TemplatePath  # 运行此案例，请将完整的example文件克隆
+from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.templating import Jinja2Templates
-from fastapi import FastAPI, WebSocket
-from pydantic import BaseModel
 
 from fastapi_channels import add_channel
 from fastapi_channels.channels import BaseChannel, Channel
@@ -11,18 +12,17 @@ from fastapi_channels.decorators import action
 from fastapi_channels.exceptions import PermissionDenied
 from fastapi_channels.permission import AllowAny
 from fastapi_channels.throttling import limiter
-from fastapi_channels.used import PersonChannel, GroupChannel
-from path import TemplatePath
+from fastapi_channels.used import GroupChannel, PersonChannel
 
 templates = Jinja2Templates(TemplatePath)
 app = FastAPI()
-add_channel(app, url="redis://localhost:6379", limiter_url="redis://localhost:6379")
+add_channel(app, url="memory://", limiter_url="memory://")
 
 global_channels_details = {}
 
 
 def add_global_channels_details(
-        channel: Union[Type[BaseChannel], BaseChannel], name: str
+    channel: Union[Type[BaseChannel], BaseChannel], name: str
 ) -> tuple[BaseChannel, str]:
     # 检查传入的是类还是实例,但是返回的都是实例对象，不做重复的实例化
     if isinstance(channel, type):
@@ -59,11 +59,11 @@ class ResponseModel(BaseModel):
     action: str
     user: str
     message: Any
-    status: str = 'ok'
+    status: str = "ok"
     errors: Optional[str] = None
     request_id: int = 1
 
-    def create(self):
+    def create(self) -> str:
         return self.model_dump_json(exclude_none=True)
 
 
@@ -85,30 +85,35 @@ class PersonalChatRoom(PersonChannel):
     async def encode_json(data: dict) -> str:
         return ResponseModel(**data).create()
 
-    @limiter(times=2, seconds=3000)  # 请求超额 但是不关闭websocket
-    @action("count")
+    @limiter(times=5, minutes=1)  # 请求超额 但是不关闭websocket
+    @limiter(
+        times=7, minutes=2
+    )  # 存在冲突，如果多次请求存在一个范围比较大和一个比较小的时间那么将会小的超时了，再请求还是会影响大的
+    @action(
+        "count"
+    )  # 一个解决办法就是把时间跨度短的放在上面，跨度大的放下面.这样被小的计数了，也不会影响大的
     async def get_count(self, websocket: WebSocket, channel: str, data: dict, **kwargs):
-        data.update({'message': await self.get_connection_count(channel)})
-        await self.broadcast_to_personal(websocket, await self.encode(data))
+        data.update({"message": await self.get_connection_count(channel)})
+        await self.broadcast_to_personal(websocket, data)
 
     @action("message")  # 广播消息
     async def send_message(
-            self, websocket: WebSocket, channel: str, data: dict, **kwargs
+        self, websocket: WebSocket, channel: str, data: dict, **kwargs
     ):
-        await self.broadcast_to_channel(channel, await self.encode(data))
+        await self.broadcast_to_channel(channel, data)
 
     @action(deprecated=True)  # action被废弃不关闭websocket
     async def deprecated_action(
-            self, websocket: WebSocket, channel: str, data: dict, **kwargs
+        self, websocket: WebSocket, channel: str, data: dict, **kwargs
     ):
         data.update({"message": "发送消息"})
-        await self.broadcast_to_personal(websocket, self.encode(data))
+        await self.broadcast_to_personal(websocket, data)
 
     @action("permission_denied", permission=False)  # 返回权限不足的错误响应
     async def permission_false(
-            self, websocket: WebSocket, channel: str, data: dict, **kwargs
+        self, websocket: WebSocket, channel: str, data: dict, **kwargs
     ):
-        await self.broadcast_to_channel(channel, self.encode(data))
+        await self.broadcast_to_channel(channel, data)
 
     @action(permission=AllowAny)  # 抛出异常不但关闭websocket
     async def error(self, websocket: WebSocket, channel: str, data: dict, **kwargs):
@@ -120,7 +125,7 @@ class PersonalChatRoom(PersonChannel):
 
 
 person_chatroom, person_chatroom_name = add_global_channels_details(
-    PersonalChatRoom, name="chatroom_ws_person"
+    PersonalChatRoom(), name="chatroom_ws_person"
 )
 
 
@@ -145,20 +150,26 @@ async def group_chatroom_ws(websocket: WebSocket):
 
 
 async def join_room(
-        websocket: WebSocket,
-        channel: str,
+    websocket: WebSocket,
+    channel: str,
 ):
-    await group_chatroom.broadcast_to_personal(websocket, "Join successfully")
+    data = {
+        "user": "notice",
+        "message": "Join successfully",
+        "action": "join room",
+    }  # 因为修改列encode 如果不以对应的样式来处理会诱发pydantic的解析错误
+    await group_chatroom.broadcast_to_personal(websocket, data)
 
 
 async def leave_room(
-        websocket: WebSocket,
-        channel: str,
+    websocket: WebSocket,
+    channel: str,
 ):
     # await group_chatroom.broadcast_to_personal(websocket, 'leave successfully')
     # error: 👆如果通过action离开房间会输出这个，但是客户端直接关闭会诱发websocket没有进行连接
     # 所以这一步只能`broadcast_to_channel`或者后续处理,而不是`broadcast_to_personal`
-    await group_chatroom.broadcast_to_channel(channel, "leave successfully")
+    data = {"user": "notice", "message": "leave successfully", "action": "leave room"}
+    await group_chatroom.broadcast_to_channel(channel, data)
 
 
 # 以函数的形式注册加入房间和退出房间的操作是可以进行广播到频道中,像fastapi那样
@@ -180,15 +191,15 @@ group_chatroom.add_event_handler("leave", leave_room)
 # 因为这里的channel是在实例化后的`connect`中被传入的`，因为我将一些lifespan的操作放到了channel,有着极大的耦合，后续将解决这个问题
 
 
-@limiter(seconds=3, times=1)
+@limiter(times=1, seconds=3)
 @group_chatroom.action("message")  # 消息发送解析和#装饰器异常
 async def send_message(websocket: WebSocket, channel: str, data: dict, **kwargs):
-    await group_chatroom.broadcast_to_channel(channel, await group_chatroom.encode(data))
+    await group_chatroom.broadcast_to_channel(channel, data)
 
 
 @group_chatroom.action("error_true")  # 触发异常，主机关闭连接
 async def send_error_and_close(
-        websocket: WebSocket, channel: str, data: dict, **kwargs
+    websocket: WebSocket, channel: str, data: dict, **kwargs
 ):
     raise PermissionDenied(close=True)
 
